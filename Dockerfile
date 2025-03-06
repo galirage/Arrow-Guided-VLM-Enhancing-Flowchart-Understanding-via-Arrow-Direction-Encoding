@@ -48,6 +48,8 @@ RUN pip install python-docx==1.1.2
 RUN pip install pypdf==5.1.0
 RUN pip install pdfplumber==0.11.5
 RUN pip install python-pptx==1.0.2
+RUN pip install langchain-openai==0.3.7
+RUN pip install dotenv==0.9.9
 
 WORKDIR /root/share
 
