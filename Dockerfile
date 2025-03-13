@@ -50,6 +50,7 @@ RUN pip install pdfplumber==0.11.5
 RUN pip install python-pptx==1.0.2
 RUN pip install langchain-openai==0.3.7
 RUN pip install dotenv==0.9.9
+RUN pip install matplotlib==3.10.1
 
 WORKDIR /root/share
 
