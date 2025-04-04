@@ -135,13 +135,33 @@ def main(args:argparse.Namespace) -> None:
         ocr_url = CV_ENDPOINT + "vision/v3.2/read/analyze"
         response_high_precision(args,ocr_url, headers)
     
-    
+def main_Doc_Intel(args:argparse.Namespace) -> None:
+    # .envファイルの読み込み
+    load_dotenv()
+
+    CV_ENDPOINT = os.getenv("CV_ENDPOINT")
+    CV_API_KEY = os.getenv("CV_API_KEY")
+
+    # APIリクエストヘッダー
+    headers = {
+    "Ocp-Apim-Subscription-Key": CV_API_KEY,
+    "Content-Type": "application/octet-stream"
+    }
+
+    with open(image_path, "rb") as f:
+        poller = document_analysis_client.begin_analyze_document("prebuilt-read", document=f)
+        result = poller.result()
+    extracted_text = "\n".join([line.content for page in result.pages for line in page.lines])
 
 
 if __name__ == '__main__':
     """
     usage)
     python get_text_using_ocr.py --img_path ../images/flowchart-example163.png --ocr_precision low
+    python get_text_using_ocr.py --process_name doc_intel --img_path ../images/flowchart-example163.png --ocr_precision low
     """
     args = parser()
-    main(args)
+    if args.process_name == 'doc_intel':
+        main_Doc_Intel(args)
+    else:
+        main(args)

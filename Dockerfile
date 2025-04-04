@@ -51,6 +51,8 @@ RUN pip install python-pptx==1.0.2
 RUN pip install langchain-openai==0.3.7
 RUN pip install dotenv==0.9.9
 RUN pip install matplotlib==3.10.1
+RUN pip install azure-ai-formrecognizer==3.3.3
+RUN pip install langgraph==0.3.22
 
 WORKDIR /root/share
 
