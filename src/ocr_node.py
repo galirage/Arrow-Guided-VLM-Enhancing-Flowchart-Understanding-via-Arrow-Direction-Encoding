@@ -8,14 +8,14 @@ import os
 import datetime
 from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
+from state import OCRState
 
-
-class OCRState(TypedDict): # define state
-    image_path: str
-    extracted_text: Optional[str]
-    document_analysis_client: DocumentAnalysisClient
-    out_dir: str
-    result: None
+# class OCRState(TypedDict): # define state
+#     image_path: str
+#     extracted_text: Optional[str]
+#     document_analysis_client: DocumentAnalysisClient
+#     out_dir: str
+#     result: None
 
 def create_filename_with_timestamp() -> str:
     now = datetime.datetime.now()
@@ -96,7 +96,7 @@ def parser():
 if __name__ == '__main__':
     """
     usage)
-    python ocr_agent.py --img_path ../images/flowchart-example163.png
+    python ocr_node.py --img_path ../images/flowchart-example163.png
     """
     args = parser()
     main(args)
