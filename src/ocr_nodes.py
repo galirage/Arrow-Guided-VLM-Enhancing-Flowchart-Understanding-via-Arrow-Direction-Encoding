@@ -43,7 +43,7 @@ def print_result(state: OCRState) -> OCRState: # output ocr
     # print("image.size, ", image.size)
     draw = ImageDraw.Draw(image)
 
-    for page in result.pages:
+    for page in result.pages: # result.pages.lines.polygon.x, .y
         for line in page.lines:
             if line.polygon:
                 points = [(point.x, point.y) for point in line.polygon]
@@ -53,6 +53,22 @@ def print_result(state: OCRState) -> OCRState: # output ocr
     # OCR結果を保存
     timestamp = create_filename_with_timestamp()
     image.save(os.path.join(state['out_dir'], 'out_img_{}_{}'.format(timestamp, args.img_path.rsplit('/', 1)[1])))
+
+    return state
+
+def get_result(state: OCRState) -> OCRState:
+    result = state['result']
+    text_and_bboxes = []
+
+    for page in result.pages:
+        for line in page.lines:
+            if line.polygon:
+                points = [(point.x, point.y) for point in line.polygon]
+                text_and_bboxes.append((line.content, points))
+
+    # stateに追加して戻す（必要であれば）
+    state['text_and_bboxes'] = text_and_bboxes
+    print("text_and_bboxes, ", text_and_bboxes)
 
     return state
 
@@ -69,17 +85,20 @@ def main(args):
 
     builder = StateGraph(OCRState)
     builder.add_node("RunOCR", run_azure_ocr)
-    builder.add_node("ShowResult", print_result)
+    if args.process_name == 'debug_out_image': # debug. printout bbox of text to image
+        builder.add_node("GetResult", print_result)
+    else:
+        builder.add_node("GetResult", get_result)
 
     builder.set_entry_point("RunOCR")
-    builder.add_edge("RunOCR", "ShowResult")
-    builder.add_edge("ShowResult", END)
+    builder.add_edge("RunOCR", "GetResult")
+    builder.add_edge("GetResult", END)
 
     graph = builder.compile()
 
     # run langgraph
     input_state = {"image_path": args.img_path, "extracted_text": None, "result": None, "document_analysis_client": documentAnalysisClient1,
-    "out_dir": args.output_dir}
+    "out_dir": args.output_dir, "text_and_bboxes": None}
     final_state = graph.invoke(input_state)
 
     
@@ -96,7 +115,7 @@ def parser():
 if __name__ == '__main__':
     """
     usage)
-    python ocr_node.py --img_path ../images/flowchart-example163.png
+    python ocr_nodes.py --img_path ../images/flowchart-example163.png
     """
     args = parser()
     main(args)

@@ -11,6 +11,7 @@ class OCRState(TypedDict): # define state
     document_analysis_client: DocumentAnalysisClient
     out_dir: str
     result: None
+    text_and_bboxes: list
 
 
 def parser():
