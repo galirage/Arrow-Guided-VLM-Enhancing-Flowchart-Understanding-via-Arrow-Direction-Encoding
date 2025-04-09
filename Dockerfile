@@ -1,60 +1,75 @@
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
-# RUN pip install --upgrade pip
+# 軽量なPythonベースのイメージを使用（Ubuntu 22.04 ベース）
+FROM python:3.10-slim
 
+# タイムゾーンの設定
 ENV TZ=Asia/Tokyo
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
-RUN echo $TZ > /etc/timezone
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt-get update
-RUN apt-get install -y apt-file
-RUN apt-file update
+# 必要なシステムパッケージのインストール
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    curl \
+    vim \
+    build-essential \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y git
-RUN apt-get install -y wget
-RUN apt-get install -y curl
-RUN apt-get install -y vim
+# Pythonのアップグレードとエイリアス設定
+RUN pip install --no-cache-dir --upgrade pip \
+    && echo "alias python='python3'" >> ~/.bashrc \
+    && echo "alias pip='pip3'" >> ~/.bashrc
 
-# python
-RUN apt-get install -y python3-pip
-
-# alias
-RUN echo alias python="python3" >> /root/.bashrc
-RUN echo alias pip="pip3" >> /root/.bashrc
-
-# Install python packages
-RUN pip install --upgrade pip
-RUN pip install opencv-python
-RUN pip install scipy
-RUN pip install scikit-learn
-RUN pip install poetry
-
-# Install VIM
-RUN apt-get update
-RUN apt-get install -y apt-file
-RUN apt-file update
-RUN apt-get install -y vim
-
-# insatll langchain, and else
-RUN pip install langchain==0.1.14
-RUN pip install faiss-gpu tiktoken sentence_transformers
-RUN pip install wandb
-RUN CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python
-RUN pip install flash_attn
-RUN pip install openai==0.28.0
-RUN pip install pandas==2.2.2
-RUN pip install -U langchain-community
-RUN pip install openpyxl==3.1.2
-RUN pip install python-docx==1.1.2
-RUN pip install pypdf==5.1.0
-RUN pip install pdfplumber==0.11.5
-RUN pip install python-pptx==1.0.2
-RUN pip install langchain-openai==0.3.7
-RUN pip install dotenv==0.9.9
-RUN pip install matplotlib==3.10.1
+# 必要なPythonパッケージをインストール（LLM, RAG 向け）
+RUN pip install --no-cache-dir langchain==0.2.1
+RUN pip install --no-cache-dir langchain-openai==0.3.8
+RUN pip install --no-cache-dir faiss-cpu
+RUN pip install --no-cache-dir tiktoken
+RUN pip install --no-cache-dir sentence_transformers
+RUN pip install --no-cache-dir wandb
+RUN pip install --no-cache-dir openai==0.28.0
+RUN pip install --no-cache-dir pandas==2.2.2
+RUN pip install --no-cache-dir langchain-community
+RUN pip install --no-cache-dir openpyxl==3.1.2
+RUN pip install --no-cache-dir python-docx==1.1.2
+RUN pip install --no-cache-dir fastapi
+RUN pip install --no-cache-dir uvicorn
+RUN pip install --no-cache-dir python-dotenv==0.9.0   # dotenv ではなく python-dotenv を使う
+RUN pip install --no-cache-dir opencv-python==4.11.0.86
+RUN apt-get update && apt-get install -y libglib2.0-0
+RUN apt-get install -y libgl1-mesa-glx
+RUN pip install twine==6.1.0
+RUN pip install build==1.2.2.post1
+RUN pip install openai==1.70.0
+RUN pip install azure-storage-blob
+RUN pip install azure-identity
+RUN pip install langgraph==0.3.26
+RUN pip install typing_extensions==4.13.1
 RUN pip install azure-ai-formrecognizer==3.3.3
-RUN pip install langgraph==0.3.22
+RUN pip install matplotlib==3.10.1
 
+# Azure CLI 用の環境変数の設定（非対話モードでの Azure CLI の動作を有効化）
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Azure CLI に必要なパッケージのインストール
+# RUN apt-get update && apt-get install -y \
+#     curl \
+#     gnupg \
+#     && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
+#     && apt-get clean \
+#     && rm -rf /var/lib/apt/lists/*
+# RUN pip install openai==1.70.0
+# RUN pip install numpy==2.2.4
+
+# Azure CLI の動作確認
+# RUN az --version
+
+# 作業ディレクトリの設定
 WORKDIR /root/share
 
-EXPOSE 8080/TCP
+# ポートの公開（FastAPI などを使用する場合）
+# EXPOSE 8000
 
+RUN ln -s /root/share /external_code
+
+# コンテナ起動時のデフォルトコマンド
+CMD ["bash"]
