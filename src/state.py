@@ -6,6 +6,11 @@ from azure.ai.formrecognizer import DocumentAnalysisClient
 
 
 class OCRDetectionState(TypedDict): # define state
+    # about detection
+    detection_result: dict
+    detection_ocr_result: dict
+    detection_ocr_match_threshold: float
+    
     # about ocr
     image_path: str
     image_num: str
@@ -14,10 +19,12 @@ class OCRDetectionState(TypedDict): # define state
     out_dir: str
     result: None
     text_and_bboxes: list
-    # about detection
-    detection_result: dict
-    detection_ocr_result: dict
-    detection_ocr_iou_threshold: float
+    object_categories: dict
+    arrow_category: int
+    arrow_start: int
+    arrow_end: int
+    directed_graph_text: str
+
     # about llm
     prompt: str
     llm_result: None

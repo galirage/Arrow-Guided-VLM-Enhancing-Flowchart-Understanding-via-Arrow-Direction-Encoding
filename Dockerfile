@@ -15,26 +15,26 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Pythonのアップグレードとエイリアス設定
-RUN pip install --no-cache-dir --upgrade pip \
+RUN pip install --upgrade pip \
     && echo "alias python='python3'" >> ~/.bashrc \
     && echo "alias pip='pip3'" >> ~/.bashrc
 
 # 必要なPythonパッケージをインストール（LLM, RAG 向け）
-RUN pip install --no-cache-dir langchain==0.2.1
-RUN pip install --no-cache-dir langchain-openai==0.3.8
-RUN pip install --no-cache-dir faiss-cpu
-RUN pip install --no-cache-dir tiktoken
-RUN pip install --no-cache-dir sentence_transformers
-RUN pip install --no-cache-dir wandb
-RUN pip install --no-cache-dir openai==0.28.0
-RUN pip install --no-cache-dir pandas==2.2.2
-RUN pip install --no-cache-dir langchain-community
-RUN pip install --no-cache-dir openpyxl==3.1.2
-RUN pip install --no-cache-dir python-docx==1.1.2
-RUN pip install --no-cache-dir fastapi
-RUN pip install --no-cache-dir uvicorn
-RUN pip install --no-cache-dir python-dotenv==0.9.0   # dotenv ではなく python-dotenv を使う
-RUN pip install --no-cache-dir opencv-python==4.11.0.86
+RUN pip install langchain==0.2.1
+RUN pip install langchain-openai==0.3.8
+RUN pip install faiss-cpu
+RUN pip install tiktoken
+RUN pip install sentence_transformers
+RUN pip install wandb
+RUN pip install openai==0.28.0
+RUN pip install pandas==2.2.2
+RUN pip install langchain-community
+RUN pip install openpyxl==3.1.2
+RUN pip install python-docx==1.1.2
+RUN pip install fastapi
+RUN pip install uvicorn
+RUN pip install python-dotenv==0.9.0   # dotenv ではなく python-dotenv を使う
+RUN pip install opencv-python==4.11.0.86
 RUN apt-get update && apt-get install -y libglib2.0-0
 RUN apt-get install -y libgl1-mesa-glx
 RUN pip install twine==6.1.0
