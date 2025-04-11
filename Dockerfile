@@ -46,6 +46,7 @@ RUN pip install langgraph==0.3.26
 RUN pip install typing_extensions==4.13.1
 RUN pip install azure-ai-formrecognizer==3.3.3
 RUN pip install matplotlib==3.10.1
+RUN apt install graphviz
 
 # Azure CLI 用の環境変数の設定（非対話モードでの Azure CLI の動作を有効化）
 ENV DEBIAN_FRONTEND=noninteractive

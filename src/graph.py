@@ -19,6 +19,8 @@ from math import sqrt
 from typing import List, Dict, Tuple
 from llm_nodes import ask_to_llm_with_detection_result, ask_to_llm, print_result
 from ocr_nodes import build_flowchart_graph, run_azure_ocr, match_textBbox_to_detectionResult, get_result
+from graphviz import Digraph
+
 
 def parser():
     parser = argparse.ArgumentParser(description='lllm_args')
@@ -28,6 +30,29 @@ def parser():
     parser.add_argument('--output_dir', '-od', type=str, default='output/', help='path to output directory')
     return parser.parse_args()
 
+
+def visualize_langgraph(builder, filename: str = "langgraph", format: str = "png"):
+    dot = Digraph(comment="LangGraph State Graph", format=format)
+
+    # ノード追加
+    for node in builder.nodes:
+        dot.node(node)
+
+    # エッジ追加
+    for from_node, to_node in builder.graph_structure:
+        if to_node == END:
+            dot.node("END", shape="doublecircle")
+            dot.edge(from_node, "END")
+        else:
+            dot.edge(from_node, to_node)
+
+    # エントリーポイント強調
+    if builder.entry_point:
+        dot.node(builder.entry_point, shape="box", style="filled", color="lightblue")
+
+    # グラフ出力
+    output_path = dot.render(filename, view=True)
+    print(f"LangGraph visualized and saved to {output_path}")
 
 def main(args):
     # set env
@@ -60,6 +85,8 @@ def main(args):
     builder.add_edge("ShowResult", END)
 
     graph = builder.compile()
+    # visualize_langgraph_from_graph(graph)
+    # visualize_langgraph(builder)
 
     json_path = args.img_path.replace('images', 'json').rsplit('.', 1)[0] + '.json'
     with open(json_path, 'r') as f:
