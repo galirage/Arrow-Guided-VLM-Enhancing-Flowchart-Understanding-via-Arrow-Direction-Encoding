@@ -22,3 +22,6 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gg_rq_rag_flowchat_detection"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
