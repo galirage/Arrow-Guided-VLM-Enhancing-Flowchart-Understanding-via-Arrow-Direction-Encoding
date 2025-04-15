@@ -13,7 +13,9 @@ def parser():
     return parser.parse_args()
 
 
-def parse_voc_xml(xml_path, image_id_start=1, annotation_id_start=1, category_mapping=None):
+def parse_voc_xml(xml_path, category_mapping):
+    import xml.etree.ElementTree as ET
+
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
@@ -21,26 +23,21 @@ def parse_voc_xml(xml_path, image_id_start=1, annotation_id_start=1, category_ma
     width = int(root.find('size/width').text)
     height = int(root.find('size/height').text)
 
-    image_id = image_id_start
     annotations = []
-    ann_id = annotation_id_start
+    ann_id = 1  # ファイルごとにリセット
+    image_id = 1  # 各ファイル内では常に 1
 
     for obj in root.findall('object'):
         name = obj.find('name').text.lower()
+        if name not in category_mapping:
+            continue
+        category_id = category_mapping[name]
 
-        # カテゴリID取得（未定義ならスキップ or 自動割当）
-        if category_mapping is None:
-            category_id = 1  # 仮にすべて "text" として処理
-        else:
-            if name not in category_mapping:
-                continue
-            category_id = category_mapping[name]
-
-        bbox = obj.find('bndbox')
-        xmin = int(bbox.find('xmin').text)
-        ymin = int(bbox.find('ymin').text)
-        xmax = int(bbox.find('xmax').text)
-        ymax = int(bbox.find('ymax').text)
+        bndbox = obj.find('bndbox')
+        xmin = int(bndbox.find('xmin').text)
+        ymin = int(bndbox.find('ymin').text)
+        xmax = int(bndbox.find('xmax').text)
+        ymax = int(bndbox.find('ymax').text)
 
         w = xmax - xmin
         h = ymax - ymin
@@ -64,10 +61,11 @@ def parse_voc_xml(xml_path, image_id_start=1, annotation_id_start=1, category_ma
         "height": height
     }
 
-    return image_info, annotations, ann_id
+    return image_info, annotations
 
+def convert_voc_folder_to_coco(voc_folder: str, output_dir: str):
+    os.makedirs(output_dir, exist_ok=True)
 
-def convert_voc_folder_to_coco(voc_folder, output_path):
     category_mapping = {
         "text": 1,
         "arrow": 2,
@@ -82,33 +80,27 @@ def convert_voc_folder_to_coco(voc_folder, output_path):
 
     categories = [{"id": id_, "name": name} for name, id_ in category_mapping.items()]
 
-    coco = {
-        "images": [],
-        "annotations": [],
-        "categories": categories
-    }
-
-    image_id = 1
-    annotation_id = 1
-
     for file in os.listdir(voc_folder):
-        if file.endswith('.xml'):
-            xml_path = os.path.join(voc_folder, file)
-            image_info, anns, annotation_id = parse_voc_xml(
-                xml_path,
-                image_id_start=image_id,
-                annotation_id_start=annotation_id,
-                category_mapping=category_mapping
-            )
-            coco["images"].append(image_info)
-            coco["annotations"].extend(anns)
-            image_id += 1
+        if not file.endswith('.xml'):
+            continue
 
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(coco, f, indent=2, ensure_ascii=False)
-    print(f"COCO JSON saved to {output_path}")
+        xml_path = os.path.join(voc_folder, file)
+        image_info, anns = parse_voc_xml(xml_path, category_mapping)
 
+        # ここで毎回初期化（重要！）
+        coco = {
+            "images": [image_info],
+            "annotations": anns,
+            "categories": categories
+        }
 
+        output_filename = os.path.splitext(file)[0] + '.json'
+        output_path = os.path.join(output_dir, output_filename)
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(coco, f, indent=2, ensure_ascii=False)
+
+        print(f" Saved: {output_path}")
 
 
 def split_coco_by_image(coco_data: dict, output_dir: str):
@@ -146,8 +138,9 @@ if __name__ == '__main__':
     args = parser()
     
     if args.process_name == "devide_anno":
-
-        # 使用例
+        # instances_custom.jsonにはarrow_start, arrow_endがないので機能しない！！
+        # 全ての画像の情報を含んだcoco形式のinstances_custom.jsonに対し、
+        # ここの画像ごとに分けて保存する
         with open("../json/instances_custom.json", "r", encoding="utf-8") as f:
             coco_data = json.load(f)
 
@@ -155,7 +148,7 @@ if __name__ == '__main__':
 
     elif args.process_name == "pascal2coco":
         convert_voc_folder_to_coco(
-            voc_folder='../xml_tmp/',
-            output_path='../json/flowchart-example179.json'
+            voc_folder='../xml/',
+            output_dir='../json/'
         )
 

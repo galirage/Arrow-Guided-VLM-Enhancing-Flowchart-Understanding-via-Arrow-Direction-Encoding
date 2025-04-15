@@ -13,34 +13,116 @@ from state import OCRDetectionState
 import json
 from math import sqrt
 
+# def _get_center(bbox):
+#     """COCO形式 [x, y, w, h] の中心座標を返す"""
+#     return (bbox[0] + bbox[2]/2, bbox[1] + bbox[3]/2)
+
+# def _euclidean_dist(p1, p2):
+#     """2点間の距離"""
+#     return sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
+
+# def _is_near_bbox(point, bbox, margin=10):
+#     """点がbboxの近傍にあるかどうかを判定（上下左右 margin ピクセルまで許容）"""
+#     x, y, w, h = bbox
+#     px, py = point
+#     return (x - margin <= px <= x + w + margin) and (y - margin <= py <= y + h + margin)
+#
+# def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
+#     objects = {}  # object_num: {type, text, center}
+#     arrows = []   # {start_center, end_center}
+
+#     arrow_starts = []
+#     arrow_ends = []
+
+#     object_num = 1
+#     id_to_objnum = {}
+
+#     # 1. オブジェクトと矢印の分類
+#     for ann in state['detection_ocr_result']['annotations']:
+#         cat_id = ann['category_id']
+#         center = _get_center(ann['bbox'])
+
+#         if cat_id in state['object_categories']:
+#             obj = {
+#                 "type": state['object_categories'][cat_id],
+#                 "text": ann.get('text', ''),
+#                 "center": center,
+#                 "object_num": object_num,
+#                 "before_object": [],
+#                 "after_object": [],
+#             }
+#             objects[object_num] = obj
+#             id_to_objnum[ann['id']] = object_num
+#             object_num += 1
+#         elif cat_id == state['arrow_start']:
+#             arrow_starts.append(center)
+#         elif cat_id == state['arrow_end']:
+#             arrow_ends.append(center)
+#     # print("---------------- state 100 ------------------")
+#     # print("arrow_starts, ", arrow_starts)
+#     # print("---------------- state 100 ------------------")
+#     # print("arrow_ends", arrow_ends)
+
+#     # 2. 矢印の組み合わせ
+#     for start, end in zip(arrow_starts, arrow_ends):
+#         # 各中心点に一番近いオブジェクトを探す
+#         start_obj = min(objects.values(), key=lambda obj: _euclidean_dist(obj['center'], start))
+#         end_obj = min(objects.values(), key=lambda obj: _euclidean_dist(obj['center'], end))
+
+#         # 相互に記録
+#         start_obj['after_object'].append(end_obj['object_num'])
+#         end_obj['before_object'].append(start_obj['object_num'])
+#     directed_graph = _format_for_llm(objects)
+#     print("-------------- directed graph -----------------")
+#     print(directed_graph)
+#     state["directed_graph_text"] = directed_graph
+#     return state
+
+
 def _get_center(bbox):
     """COCO形式 [x, y, w, h] の中心座標を返す"""
-    return (bbox[0] + bbox[2]/2, bbox[1] + bbox[3]/2)
+    return (bbox[0] + bbox[2] / 2, bbox[1] + bbox[3] / 2)
 
 def _euclidean_dist(p1, p2):
-    """2点間の距離"""
-    return sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
+    """2点間のユークリッド距離"""
+    return sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
+def _is_near_bbox_edge(point, bbox, margin=20):
+    """
+    点が bbox の上下左右の辺に margin ピクセル以内で近いかどうかを判定
+    """
+    x, y, w, h = bbox
+    px, py = point
+
+    near_left   = abs(px - x) <= margin and y - margin <= py <= y + h + margin
+    near_right  = abs(px - (x + w)) <= margin and y - margin <= py <= y + h + margin
+    near_top    = abs(py - y) <= margin and x - margin <= px <= x + w + margin
+    near_bottom = abs(py - (y + h)) <= margin and x - margin <= px <= x + w + margin
+
+    return near_left or near_right or near_top or near_bottom
 
 def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
-    objects = {}  # object_num: {type, text, center}
-    arrows = []   # {start_center, end_center}
-
-    arrow_starts = []
-    arrow_ends = []
+    objects = {}  # object_num: {type, text, center, bbox, before_object, after_object}
+    arrows = []   # [{start_point, end_point}]
+    arrow_start_candidates = []  # [(x, y)]
+    arrow_end_candidates = []    # [(x, y)]
+    arrow_bboxes = []            # arrow自体（category_id=2）
 
     object_num = 1
     id_to_objnum = {}
 
-    # 1. オブジェクトと矢印の分類
+    # 1. オブジェクト・矢印情報を分類
     for ann in state['detection_ocr_result']['annotations']:
         cat_id = ann['category_id']
-        center = _get_center(ann['bbox'])
+        bbox = ann['bbox']
+        center = _get_center(bbox)
 
         if cat_id in state['object_categories']:
             obj = {
                 "type": state['object_categories'][cat_id],
                 "text": ann.get('text', ''),
                 "center": center,
+                "bbox": bbox,
                 "object_num": object_num,
                 "before_object": [],
                 "after_object": [],
@@ -49,28 +131,66 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
             id_to_objnum[ann['id']] = object_num
             object_num += 1
         elif cat_id == state['arrow_start']:
-            arrow_starts.append(center)
+            arrow_start_candidates.append(center)
         elif cat_id == state['arrow_end']:
-            arrow_ends.append(center)
-    print("---------------- state 100 ------------------")
-    print("arrow_starts, ", arrow_starts)
-    print("---------------- state 100 ------------------")
-    print("arrow_ends", arrow_ends)
+            arrow_end_candidates.append(center)
+        elif cat_id == state['arrow_category']:
+            arrow_bboxes.append(bbox)
+    print("arrow_start_candidates, ", arrow_start_candidates)
+    # 2. 矢印bboxごとに最も近い start/end 点を探してペアを作成
+    print("2. -----------------------------------------------------------------------------------")
+    arrow_start_end_margin = 30
+    print("len(arrow_bboxes) ", len(arrow_bboxes))
+    for bbox in arrow_bboxes:
+        print("bbox: ", bbox)
+        matched_start = None
+        matched_end = None
 
-    # 2. 矢印の組み合わせ
-    for start, end in zip(arrow_starts, arrow_ends):
-        # 各中心点に一番近いオブジェクトを探す
-        start_obj = min(objects.values(), key=lambda obj: _euclidean_dist(obj['center'], start))
-        end_obj = min(objects.values(), key=lambda obj: _euclidean_dist(obj['center'], end))
+        for pt in arrow_start_candidates:
+            # print("bbox:{}, pt:{}".format(bbox, pt))
+            if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):  # マージン調整可能
+                matched_start = pt
+                print("Yes!")
+                break
 
-        # 相互に記録
-        start_obj['after_object'].append(end_obj['object_num'])
-        end_obj['before_object'].append(start_obj['object_num'])
+        for pt in arrow_end_candidates:
+            if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
+                matched_end = pt
+                break
+
+        if matched_start and matched_end:
+            arrows.append({
+                "start": matched_start,
+                "end": matched_end
+            })
+    print("arrows, ", arrows)
+    # 3. 矢印の始点・終点がどの object の bbox edge に近いかを調べる
+    for arrow in arrows:
+        start_pt = arrow["start"]
+        end_pt = arrow["end"]
+
+        start_obj = None
+        end_obj = None
+
+        for obj in objects.values():
+            if start_obj is None and _is_near_bbox_edge(start_pt, obj['bbox']):
+                start_obj = obj
+            if end_obj is None and _is_near_bbox_edge(end_pt, obj['bbox']):
+                end_obj = obj
+
+        if start_obj and end_obj:
+            start_obj['after_object'].append(end_obj['object_num'])
+            end_obj['before_object'].append(start_obj['object_num'])
+
+    # 4. LLMに渡す形式のテキスト出力を生成
     directed_graph = _format_for_llm(objects)
     print("-------------- directed graph -----------------")
     print(directed_graph)
+
     state["directed_graph_text"] = directed_graph
     return state
+
+
     
 
 def _format_for_llm(objects: Dict[int, dict]) -> str:

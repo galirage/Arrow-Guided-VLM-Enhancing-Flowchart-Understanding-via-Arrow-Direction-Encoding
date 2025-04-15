@@ -103,7 +103,7 @@ def main(args):
 if __name__ == '__main__':
     """
     usage)
-    python graph.py --process_name main --img_path ../images/flowchart-example163.png
+    python graph.py --process_name main --img_path ../images/flowchart-example179.png
 
     """
     args = parser()
