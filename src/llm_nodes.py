@@ -38,6 +38,7 @@ def _get_question(image_num:int) -> List[Dict[str, str]]:
     print(df.head(10))
 
     df_num1 = df[df['img_file_name']==image_num]
+    print("df['img_file_name'].unique(), ", df['img_file_name'].unique())
     assert len(df_num1) == 3, 'len(df_num1) != 3. len(df_num1) == {}'.format(len(df_num1))
 
     question_answers = []

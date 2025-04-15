@@ -19,7 +19,7 @@ from math import sqrt
 from typing import List, Dict, Tuple
 from llm_nodes import ask_to_llm_with_detection_result, ask_to_llm, print_result
 from ocr_nodes import build_flowchart_graph, run_azure_ocr, match_textBbox_to_detectionResult, get_result
-from graphviz import Digraph
+# from graphviz import Digraph
 
 
 def parser():
