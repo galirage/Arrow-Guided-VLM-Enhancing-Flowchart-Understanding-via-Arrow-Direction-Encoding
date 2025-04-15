@@ -1,76 +1,28 @@
-# 軽量なPythonベースのイメージを使用（Ubuntu 22.04 ベース）
-FROM python:3.10-slim
+FROM python:3.11-bullseye
 
-# タイムゾーンの設定
+# タイムゾーン設定
 ENV TZ=Asia/Tokyo
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 必要なシステムパッケージのインストール
-RUN apt-get update && apt-get install -y \
-    git \
-    wget \
-    curl \
-    vim \
-    build-essential \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# 必要なパッケージを確実にインストール
+RUN apt-get update && \
+    apt-get install -y python3-venv python3-pip vim && \
+    apt-get clean
+# RUN python3 -m venv --help
+# WORKDIR /root/share
+# WORKDIR app/
+WORKDIR /opt/venv
+COPY . .
+# COPY requirements.txt .
 
-# Pythonのアップグレードとエイリアス設定
-RUN pip install --upgrade pip \
-    && echo "alias python='python3'" >> ~/.bashrc \
-    && echo "alias pip='pip3'" >> ~/.bashrc
+# 仮想環境の作成とパッケージインストール
+RUN python3 -m venv .venv && \
+    .venv/bin/pip install --upgrade pip && \
+    .venv/bin/pip install -r requirements.txt
+ENV PATH="/opt/venv/bin:$PATH"
 
-# 必要なPythonパッケージをインストール（LLM, RAG 向け）
-RUN pip install langchain==0.2.1
-RUN pip install langchain-openai==0.3.8
-RUN pip install faiss-cpu
-RUN pip install tiktoken
-RUN pip install sentence_transformers
-RUN pip install wandb
-RUN pip install openai==0.28.0
-RUN pip install pandas==2.2.2
-RUN pip install langchain-community
-RUN pip install openpyxl==3.1.2
-RUN pip install python-docx==1.1.2
-RUN pip install fastapi
-RUN pip install uvicorn
-RUN pip install python-dotenv==0.9.0   # dotenv ではなく python-dotenv を使う
-RUN pip install opencv-python==4.11.0.86
-RUN apt-get update && apt-get install -y libglib2.0-0
-RUN apt-get install -y libgl1-mesa-glx
-RUN pip install twine==6.1.0
-RUN pip install build==1.2.2.post1
-RUN pip install openai==1.70.0
-RUN pip install azure-storage-blob
-RUN pip install azure-identity
-RUN pip install langgraph==0.3.26
-RUN pip install typing_extensions==4.13.1
-RUN pip install azure-ai-formrecognizer==3.3.3
-RUN pip install matplotlib==3.10.1
-RUN apt install graphviz
-
-# Azure CLI 用の環境変数の設定（非対話モードでの Azure CLI の動作を有効化）
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Azure CLI に必要なパッケージのインストール
-# RUN apt-get update && apt-get install -y \
-#     curl \
-#     gnupg \
-#     && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
-#     && apt-get clean \
-#     && rm -rf /var/lib/apt/lists/*
-# RUN pip install openai==1.70.0
-# RUN pip install numpy==2.2.4
-
-# Azure CLI の動作確認
-# RUN az --version
-
-# 作業ディレクトリの設定
 WORKDIR /root/share
+CMD [ "bash" ]
 
-# ポートの公開（FastAPI などを使用する場合）
-# EXPOSE 8000
 
-RUN ln -s /root/share /external_code
 
-# コンテナ起動時のデフォルトコマンド
-CMD ["bash"]

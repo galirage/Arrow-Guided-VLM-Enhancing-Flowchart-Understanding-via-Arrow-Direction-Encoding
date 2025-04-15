@@ -1,10 +1,10 @@
 # in the case to use cuda
-IMAGE_REPOSITORY=ncw_poc_call_center
+IMAGE_REPOSITORY=gg-flow-chat
 IMAGE_TAG=latest
 IMAGE_FULLNAME=${IMAGE_REPOSITORY}:${IMAGE_TAG}
 
 # docker build if changed.
-docker build -t ${IMAGE_FULLNAME} .
+docker build --no-cache -t ${IMAGE_FULLNAME} .
 
 # allow display connection
 xhost local:
