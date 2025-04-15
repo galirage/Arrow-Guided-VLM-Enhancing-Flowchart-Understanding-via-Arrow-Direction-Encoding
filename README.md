@@ -59,3 +59,11 @@ pip install ruff pytest
 ```
 
 VSCodeを使用している場合、`charliermarsh.ruff`拡張機能をインストールすると、コード保存時の自動フォーマットやリアルタイムのlintチェックが有効になります。
+
+## OCR, detection -> LLM の実行手順
+```bash
+cd src
+python graph.py --process_name main --img_path PATH/TO/FLOW-CHART-IMAGE-FILE
+# ex)
+python graph.py --process_name main --img_path ../images/flowchart-example179.png
+```
