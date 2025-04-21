@@ -197,11 +197,8 @@ def ask_to_llm(state: OCRDetectionState) -> OCRDetectionState:
 
         question_prompt = "Please answer the following questions using the following flow-chart diagram. \n\n"
         question_prompt += q_a1['question'] + "\n"
-        if state['directed_graph_text'] is not None:
-            question_prompt += "Refer to the following flow-chart diagram readings by the detection model. \n"
-            question_prompt += state['directed_graph_text']
-            print("directed graph is used!!")
 
+        # 1) with no detection, ocr
         messages = [
             SystemMessage(content="You are a helpful assistant."),
             HumanMessage(content=[
@@ -210,18 +207,39 @@ def ask_to_llm(state: OCRDetectionState) -> OCRDetectionState:
             ])
         ]
 
-        output = model.invoke(messages)
+        output_ori = model.invoke(messages)
+
+        # 2) with detection, ocr
+        question_prompt_with_dec_ocr = question_prompt + "Refer to the following flow-chart diagram readings by the detection model.  \n"
+        question_prompt_with_dec_ocr += "'before object' and 'after object' may be sometimes incorrect and should be used only as a reference."
+        question_prompt_with_dec_ocr += state['directed_graph_text']
+        # print("directed graph is used!!")
+
+        messages = [
+            SystemMessage(content="You are a helpful assistant."),
+            HumanMessage(content=[
+                {"type": "text", "text": question_prompt_with_dec_ocr},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}
+            ])
+        ]
+
+        output_dec_ocr = model.invoke(messages)
         print("-----------------------------------------------------------")
         print("-----------------------------------------------------------")
         print("question: ", q_a1['question'])
         print("-----------------------------------------------------------")
         print("answer_collect: ", q_a1['answer_collect'])
         print("-----------------------------------------------------------")
-        print("answer_llm, ", output.content)
+        print("answer_llm with no detection, ocr: ", output_ori.content)
+        print("-----------------------------------------------------------")
+        print("answer_llm with detection, ocr: ", output_dec_ocr.content)
+
         # print("type(output), ", type(output))
         results.append({'question': q_a1['question'],
                         'answer_collect': q_a1['answer_collect'],
-                        'answer_from_llm': output.content})
+                        'answer_from_llm_with_no_dec_ocr': output_ori.content,
+                        'answer_from_llm_with_dec_ocr': output_dec_ocr.content,
+                        })
     state['llm_result'] = results
 
     return state
