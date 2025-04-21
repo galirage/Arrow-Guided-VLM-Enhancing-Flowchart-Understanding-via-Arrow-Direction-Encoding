@@ -78,6 +78,30 @@ from math import sqrt
 #     state["directed_graph_text"] = directed_graph
 #     return state
 
+def _calculate_iou(boxA, boxB):
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[0]+boxA[2], boxB[0]+boxB[2])
+    yB = min(boxA[1]+boxA[3], boxB[1]+boxB[3])
+
+    interWidth = max(0, xB - xA)
+    interHeight = max(0, yB - yA)
+    interArea = interWidth * interHeight
+
+    boxAArea = boxA[2] * boxA[3]
+    boxBArea = boxB[2] * boxB[3]
+
+    if boxAArea + boxBArea - interArea == 0:
+        return 0.0
+
+    return interArea / (boxAArea + boxBArea - interArea)
+
+def _bbox_from_two_points(p1, p2):
+    x1, y1 = p1
+    x2, y2 = p2
+    x_min, y_min = min(x1, x2), min(y1, y2)
+    x_max, y_max = max(x1, x2), max(y1, y2)
+    return [x_min, y_min, x_max - x_min, y_max - y_min]
 
 def _get_center(bbox):
     """COCO形式 [x, y, w, h] の中心座標を返す"""
@@ -137,33 +161,56 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
         elif cat_id == state['arrow_category']:
             arrow_bboxes.append(bbox)
     print("arrow_start_candidates, ", arrow_start_candidates)
+    
     # 2. 矢印bboxごとに最も近い start/end 点を探してペアを作成
-    print("2. -----------------------------------------------------------------------------------")
+    # print("2. -----------------------------------------------------------------------------------")
+    # arrow_start_end_margin = 30
+    # print("len(arrow_bboxes) ", len(arrow_bboxes))
+    # for bbox in arrow_bboxes:
+    #     print("bbox: ", bbox)
+    #     matched_start = None
+    #     matched_end = None
+
+    #     for pt in arrow_start_candidates:
+    #         # print("bbox:{}, pt:{}".format(bbox, pt))
+    #         if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):  # マージン調整可能
+    #             matched_start = pt
+    #             print("Yes!")
+    #             break
+
+    #     for pt in arrow_end_candidates:
+    #         if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
+    #             matched_end = pt
+    #             break
+
+    #     if matched_start and matched_end:
+    #         arrows.append({
+    #             "start": matched_start,
+    #             "end": matched_end
+    #         })
+    # print("arrows, ", arrows)
     arrow_start_end_margin = 30
-    print("len(arrow_bboxes) ", len(arrow_bboxes))
+    iou_threshold = 0.3  # IoUの最小しきい値（必要に応じて調整）
+
     for bbox in arrow_bboxes:
-        print("bbox: ", bbox)
-        matched_start = None
-        matched_end = None
+        best_iou = 0
+        best_pair = None
 
-        for pt in arrow_start_candidates:
-            # print("bbox:{}, pt:{}".format(bbox, pt))
-            if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):  # マージン調整可能
-                matched_start = pt
-                print("Yes!")
-                break
+        for start_pt in arrow_start_candidates:
+            for end_pt in arrow_end_candidates:
+                start_end_bbox = _bbox_from_two_points(start_pt, end_pt)
+                iou = _calculate_iou(bbox, start_end_bbox)
 
-        for pt in arrow_end_candidates:
-            if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
-                matched_end = pt
-                break
+                if iou > best_iou:
+                    best_iou = iou
+                    best_pair = (start_pt, end_pt)
 
-        if matched_start and matched_end:
+        if best_pair and best_iou >= iou_threshold:
             arrows.append({
-                "start": matched_start,
-                "end": matched_end
+                "start": best_pair[0],
+                "end": best_pair[1]
             })
-    print("arrows, ", arrows)
+
     # 3. 矢印の始点・終点がどの object の bbox edge に近いかを調べる
     for arrow in arrows:
         start_pt = arrow["start"]
