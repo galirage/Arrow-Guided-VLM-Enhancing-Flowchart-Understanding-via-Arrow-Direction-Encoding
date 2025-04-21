@@ -162,54 +162,56 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
             arrow_bboxes.append(bbox)
     print("arrow_start_candidates, ", arrow_start_candidates)
     
-    # 2. 矢印bboxごとに最も近い start/end 点を探してペアを作成
-    # print("2. -----------------------------------------------------------------------------------")
-    # arrow_start_end_margin = 30
-    # print("len(arrow_bboxes) ", len(arrow_bboxes))
-    # for bbox in arrow_bboxes:
-    #     print("bbox: ", bbox)
-    #     matched_start = None
-    #     matched_end = None
-
-    #     for pt in arrow_start_candidates:
-    #         # print("bbox:{}, pt:{}".format(bbox, pt))
-    #         if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):  # マージン調整可能
-    #             matched_start = pt
-    #             print("Yes!")
-    #             break
-
-    #     for pt in arrow_end_candidates:
-    #         if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
-    #             matched_end = pt
-    #             break
-
-    #     if matched_start and matched_end:
-    #         arrows.append({
-    #             "start": matched_start,
-    #             "end": matched_end
-    #         })
-    # print("arrows, ", arrows)
     arrow_start_end_margin = 30
-    iou_threshold = 0.3  # IoUの最小しきい値（必要に応じて調整）
+    arrow_start_end_margin = 30
+    iou_threshold = 0.3
+    ARROW_SIZE_THRESHOLD = 2000
 
     for bbox in arrow_bboxes:
-        best_iou = 0
-        best_pair = None
+        bbox_area = bbox[2] * bbox[3]
 
-        for start_pt in arrow_start_candidates:
-            for end_pt in arrow_end_candidates:
-                start_end_bbox = _bbox_from_two_points(start_pt, end_pt)
-                iou = _calculate_iou(bbox, start_end_bbox)
+        if bbox_area >= ARROW_SIZE_THRESHOLD:
+            # ----------------------
+            # 大きな矢印 → IoUベースで最適なstart/endペアを探す
+            best_iou = 0
+            best_pair = None
 
-                if iou > best_iou:
-                    best_iou = iou
-                    best_pair = (start_pt, end_pt)
+            for start_pt in arrow_start_candidates:
+                for end_pt in arrow_end_candidates:
+                    start_end_bbox = _bbox_from_two_points(start_pt, end_pt)
+                    iou = _calculate_iou(bbox, start_end_bbox)
 
-        if best_pair and best_iou >= iou_threshold:
-            arrows.append({
-                "start": best_pair[0],
-                "end": best_pair[1]
-            })
+                    if iou > best_iou:
+                        best_iou = iou
+                        best_pair = (start_pt, end_pt)
+
+            if best_pair and best_iou >= iou_threshold:
+                arrows.append({
+                    "start": best_pair[0],
+                    "end": best_pair[1]
+                })
+
+        else:
+            # ----------------------
+            # 小さな矢印 → bboxの縁に近いstart/endを1個ずつ探す（従来方式）
+            matched_start = None
+            matched_end = None
+
+            for pt in arrow_start_candidates:
+                if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
+                    matched_start = pt
+                    break
+
+            for pt in arrow_end_candidates:
+                if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
+                    matched_end = pt
+                    break
+
+            if matched_start and matched_end:
+                arrows.append({
+                    "start": matched_start,
+                    "end": matched_end
+                })
 
     # 3. 矢印の始点・終点がどの object の bbox edge に近いかを調べる
     for arrow in arrows:
@@ -219,10 +221,20 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
         start_obj = None
         end_obj = None
 
+        # for obj in objects.values():
+        #     if start_obj is None and _is_near_bbox_edge(start_pt, obj['bbox']):
+        #         start_obj = obj
+        #     if end_obj is None and _is_near_bbox_edge(end_pt, obj['bbox']):
+        #         end_obj = obj
         for obj in objects.values():
             if start_obj is None and _is_near_bbox_edge(start_pt, obj['bbox']):
                 start_obj = obj
+
+        # end_obj 探索時に start_obj と同じ object_num を除外する
+        for obj in objects.values():
             if end_obj is None and _is_near_bbox_edge(end_pt, obj['bbox']):
+                if start_obj is not None and obj['object_num'] == start_obj['object_num']:
+                    continue  # 自己ループを避ける
                 end_obj = obj
 
         if start_obj and end_obj:
