@@ -5,13 +5,34 @@ import datetime
 from azure.ai.formrecognizer import DocumentAnalysisClient
 
 
-class OCRState(TypedDict): # define state
+class OCRDetectionState(TypedDict): # define state
+    # about detection
+    detection_result: dict
+    detection_ocr_result: dict
+    detection_ocr_match_threshold: float
+    
+    # about ocr
     image_path: str
+    image_num: str
     extracted_text: Optional[str]
     document_analysis_client: DocumentAnalysisClient
     out_dir: str
     result: None
+    text_and_bboxes: list
+    object_categories: dict
+    arrow_category: int
+    arrow_start: int
+    arrow_end: int
+    directed_graph_text: str
 
+    # about llm
+    prompt: str
+    llm_result: None
+
+    
+# class DetectionState(TypedDict): # define state
+#     image_path: str
+    
 
 def parser():
     parser = argparse.ArgumentParser(description='lllm_args')

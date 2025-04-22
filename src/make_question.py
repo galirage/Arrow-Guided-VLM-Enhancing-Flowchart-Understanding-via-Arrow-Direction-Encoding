@@ -22,9 +22,8 @@ def encode_image_to_base64(image_path:str) -> str:
 def main(args:argparse.Namespace) -> None:
     # .envファイルの読み込み
     load_dotenv()
-    # AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT")
-    # AZURE_DOCUMENT_INTELLIGENCE_KEY = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_KEY")
-    # openai_api_key = os.getenv("OPENAI_API_KEY")
+
+    openai_api_key = os.getenv("OPENAI_API_KEY")
     langchain_tracing_v2 = os.getenv("LANGCHAIN_TRACING_V2")
     langchain_api_key = os.getenv("LANGCHAIN_API_KEY")
     langchain_project = os.getenv("LANGCHAIN_PROJECT")
