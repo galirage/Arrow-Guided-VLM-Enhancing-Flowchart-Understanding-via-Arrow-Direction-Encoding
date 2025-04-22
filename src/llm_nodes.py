@@ -53,7 +53,7 @@ def _get_question(image_num:int) -> List[Dict[str, str]]:
             question_answers.append({'question':question, 'answer_collect':answer})
         else: # 3
             question = "In the flowchart diagram, which of the steps before an object '{}' except '{}'?".format(row['q_ref_step1'], row['q_ref_step2'])
-            answer = "The next step after '{}' is '{}'.".format(row['q_ref_step1'], row['answer_ref_step'])
+            answer = "The step before '{}' except '{}' is '{}'.".format(row['q_ref_step1'], row['q_ref_step2'], row['answer_ref_step'])
             question_answers.append({'question':question, 'answer_collect':answer})
     return question_answers
 
