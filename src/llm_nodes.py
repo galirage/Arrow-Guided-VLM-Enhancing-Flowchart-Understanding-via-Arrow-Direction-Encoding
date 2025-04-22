@@ -48,8 +48,8 @@ def _get_question(image_num:int) -> List[Dict[str, str]]:
             answer = "The next step after '{}' is '{}'.".format(row['q_ref_step1'], row['answer_ref_step'])
             question_answers.append({'question':question, 'answer_collect':answer})
         elif row['question_type'] == 2:
-            question = ""
-            answer = ""
+            question = "In this flowchart diagram, if '{}' is '{}', what is the next step?".format(row['q_ref_step1'], row['q_ref_yes_no'])
+            answer = "If '{}' is '{}', the next step is '{}'.".format(row['q_ref_step1'], row['q_ref_yes_no'], row['answer_ref_step'])
             question_answers.append({'question':question, 'answer_collect':answer})
         else: # 3
             question = "In the flowchart diagram, which of the steps before an object '{}' except '{}'?".format(row['q_ref_step1'], row['q_ref_step2'])
