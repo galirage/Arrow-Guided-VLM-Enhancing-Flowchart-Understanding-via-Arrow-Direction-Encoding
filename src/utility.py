@@ -130,10 +130,40 @@ def split_coco_by_image(coco_data: dict, output_dir: str):
 
         print(f"Saved {output_path}")
 
+def resize_half(args):
+
+    # 元のJSONファイルパス
+    input_path = "../json_predict/flowchart-example017_tmp.json"
+    output_path = "../json_predict/flowchart-example017.json"
+
+    # 縮小倍率
+    scale = 0.5
+
+    with open(input_path, "r") as f:
+        data = json.load(f)
+
+    # 画像サイズを縮小
+    for image in data["images"]:
+        image["width"] = int(image["width"] * scale)
+        image["height"] = int(image["height"] * scale)
+
+    # bbox・areaを調整
+    for ann in data["annotations"]:
+        ann["bbox"] = [coord * scale for coord in ann["bbox"]]
+        ann["area"] = ann["area"] * (scale ** 2)
+
+    # 保存
+    with open(output_path, "w") as f:
+        json.dump(data, f, indent=2)
+
+    print(f"変換完了: {output_path}") 
+
+
 if __name__ == '__main__':
     """
     usage)
-    python ocr_nodes.py --img_path ../images/flowchart-example163.png
+     1) xml to json
+    python utility.py --process_name pascal2coco
     """
     args = parser()
     
@@ -148,7 +178,10 @@ if __name__ == '__main__':
 
     elif args.process_name == "pascal2coco":
         convert_voc_folder_to_coco(
-            voc_folder='../xml/',
-            output_dir='../json/'
+            voc_folder='../xml_predict/',
+            output_dir='../json_predict/'
         )
+
+    elif args.process_name == "resize_half":
+        resize_half(args)
 

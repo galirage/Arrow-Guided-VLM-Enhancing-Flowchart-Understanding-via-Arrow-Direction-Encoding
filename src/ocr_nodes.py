@@ -12,6 +12,7 @@ from state import OCRDetectionState
 # from state import DetectionState
 import json
 from math import sqrt
+import io
 
 
 def _calculate_iou(boxA, boxB):
@@ -336,10 +337,20 @@ def _create_filename_with_timestamp() -> str:
 
 def run_azure_ocr(state: OCRDetectionState) -> OCRDetectionState: # run ocr
     image_path = state["image_path"]
-    with open(image_path, "rb") as f:
-        poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=f)
-        result = poller.result()
-        print("type(result) : ", type(result))
+    if image_path.lower().endswith(".webp"):
+        with Image.open(image_path) as img:
+            byte_stream = io.BytesIO()
+            img.save(byte_stream, format="PNG")
+            byte_stream.seek(0)
+            print("Converted WebP to PNG in memory.")
+            poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=byte_stream)
+    else:
+        with open(image_path, "rb") as f:
+            poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=f)
+    # with open(image_path, "rb") as f:
+    #     poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=f)
+    result = poller.result()
+    print("type(result) : ", type(result))
     extracted_text = "\n".join([line.content for page in result.pages for line in page.lines])
     state["image_path"] = image_path
     state["extracted_text"] = extracted_text
