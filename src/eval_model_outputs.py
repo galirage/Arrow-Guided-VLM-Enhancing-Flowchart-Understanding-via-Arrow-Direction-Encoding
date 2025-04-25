@@ -1,9 +1,8 @@
 import csv
+from pathlib import Path
 
-from .evaluator import workflow
-
-# State の変更に合わせてインポートを整理
-from .schema import EvaluationData, EvaluationDataset, EvaluationResult
+from src.evaluator import workflow
+from src.schema import EvaluationData, EvaluationDataset, EvaluationResult
 
 
 def save_results_to_csv(
@@ -14,24 +13,37 @@ def save_results_to_csv(
         print("評価結果がありません。CSVファイルは作成されません。")
         return
 
-    # EvaluationResultの全フィールド名を取得 (順序はモデル定義依存)
+    # ディレクトリが存在するか確認し、なければ作成
+    file_path = Path(filename)
+    if file_path.parent != Path("."):
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
     fieldnames = list(EvaluationResult.model_fields.keys())
 
-    with open(filename, "w", newline="", encoding="utf-8") as csvfile:
+    with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         writer.writeheader()
         for result in results:
-            # 全フィールドのデータを書き込む
             writer.writerow(result.model_dump())
     print(f"評価結果を {filename} に保存しました。")
 
 
+def calculate_accuracy_percentage(results: list[EvaluationResult]) -> float:
+    """Compute accuracy (percentage of correct answers) from evaluation results."""
+    if not results:
+        return 0.0
+
+    num_correct = sum(1 for r in results if r.is_correct)
+    accuracy = (num_correct / len(results)) * 100
+    return accuracy
+
+
 def evaluate_dataset(
     dataset: EvaluationDataset,
-):
+) -> list[EvaluationResult]:
     """
-    EvaluationDatasetを評価し、結果をCSVに保存するパイプライン関数。
+    EvaluationDatasetを評価し、結果のリストを返す。
 
     Args:
         dataset: 評価対象のデータセット。
@@ -43,41 +55,146 @@ def evaluate_dataset(
 
     for data_item in dataset.items:
         try:
-            # workflow は State に準拠した辞書を返す想定
             workflow_output = workflow.invoke(
                 input={
                     "question": data_item.question,
-                    "image": data_item.image,
+                    "image_path": data_item.image_path,
                     "reference_answer": data_item.reference_answer,
                     "model_output": data_item.model_output,
                 }
             )
-            result = EvaluationResult(**workflow_output)
+
+            # workflow_output には image_path が含まれていないため、元のデータから追加
+            complete_output = {
+                **workflow_output,
+                "image_path": data_item.image_path,  # EvaluationResult が必要とするフィールド
+            }
+
+            result = EvaluationResult(**complete_output)
             results.append(result)
         except Exception as e:
             print(f"エラーが発生しました: {e}")
             raise e
 
-    save_results_to_csv(results)
+    accuracy = calculate_accuracy_percentage(results)
+    print(
+        f"正答率: {accuracy:.2f}% ({len(results)} 件中 {sum(r.is_correct for r in results)} 件正解)"
+    )
+
+    return results
+
+
+def save_model_comparison_to_csv(
+    model_results: dict[str, tuple[list[EvaluationResult], float]],
+    filename: str = "model_comparison.csv",
+):
+    """
+    複数モデルの評価結果を整形して1つのCSVに保存する関数
+
+    Args:
+        model_results: {モデル名: (評価結果リスト, 正答率)} の辞書
+        filename: 出力CSVファイル名
+    """
+    # ディレクトリが存在するか確認し、なければ作成
+    file_path = Path(filename)
+    if file_path.parent != Path("."):
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+
+        # ヘッダー行
+        writer.writerow(["Model", "Accuracy (%)", "Correct", "Total", "Error Rate (%)"])
+
+        # 各モデルの結果行
+        for model_name, (results, accuracy) in model_results.items():
+            correct_count = sum(1 for r in results if r.is_correct)
+            total_count = len(results)
+            error_rate = 100.0 - accuracy
+
+            writer.writerow([
+                model_name,
+                f"{accuracy:.2f}",
+                correct_count,
+                total_count,
+                f"{error_rate:.2f}",
+            ])
+
+    print(f"モデル比較結果を {filename} に保存しました。")
 
 
 # --- 実行例 ---
 if __name__ == "__main__":
-    sample_data = [
-        EvaluationData(
-            question="質問1",
-            image=b"",
-            reference_answer="模範回答1",
-            model_output="モデル出力1",
-        ),
-        EvaluationData(
-            question="質問2",
-            image=b"",
-            reference_answer="模範回答2",
-            model_output="モデル出力2",
-        ),
+    # 共通の質問とゴールド標準回答
+    questions = [
+        "富士山の高さは？",
+        "日本の首都は？",
+        "水の化学式は？",
+        "人体で最大の臓器は？",
     ]
 
-    sample_dataset = EvaluationDataset(items=sample_data)
+    gold_answers = [
+        "3,776メートルです。",
+        "東京です。",
+        "H2Oです。",
+        "皮膚です。",
+    ]
 
-    evaluation_results = evaluate_dataset(sample_dataset)
+    # Model A のサンプル出力
+    model_a_outputs = [
+        "富士山の高さは3,776メートルです。",
+        "日本の首都は東京です。",
+        "水の化学式はH2O（水素2原子と酸素1原子）です。",
+        "最大の臓器は肝臓です。",  # 不正解
+    ]
+
+    # Model B のサンプル出力
+    model_b_outputs = [
+        "3,776メートル",
+        "東京",
+        "H2O",
+        "皮膚",
+    ]
+
+    # Model A のデータセット作成
+    model_a_data = [
+        EvaluationData(
+            question=question,
+            image_path="no_image",  # 画像なしの場合の有効な値
+            reference_answer=ref,
+            model_output=output,
+        )
+        for question, ref, output in zip(questions, gold_answers, model_a_outputs)
+    ]
+
+    # Model B のデータセット作成
+    model_b_data = [
+        EvaluationData(
+            question=question,
+            image_path="no_image",  # 画像なしの場合の有効な値
+            reference_answer=ref,
+            model_output=output,
+        )
+        for question, ref, output in zip(questions, gold_answers, model_b_outputs)
+    ]
+
+    # 各モデルの評価実行
+    print("Model A の評価を実行中...")
+    model_a_results = evaluate_dataset(EvaluationDataset(items=model_a_data))
+    model_a_accuracy = calculate_accuracy_percentage(model_a_results)
+    save_results_to_csv(model_a_results, "results/model_a_evaluation_results.csv")
+
+    print("\nModel B の評価を実行中...")
+    model_b_results = evaluate_dataset(EvaluationDataset(items=model_b_data))
+    model_b_accuracy = calculate_accuracy_percentage(model_b_results)
+    save_results_to_csv(model_b_results, "results/model_b_evaluation_results.csv")
+
+    # モデル比較結果をCSVに保存
+    model_comparison = {
+        "Model A": (model_a_results, model_a_accuracy),
+        "Model B": (model_b_results, model_b_accuracy),
+    }
+
+    save_model_comparison_to_csv(
+        model_comparison, "results/model_comparison_results.csv"
+    )
