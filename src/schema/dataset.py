@@ -16,6 +16,8 @@ class EvaluationData(BaseModel):
     """
 
     question: str = Field(..., description="評価対象の質問")
+    category: str = Field(..., description="評価対象の質問のカテゴリ")
+    question_type: int = Field(..., description="評価対象の質問のタイプ")
     image_path: str = Field(..., description="評価対象の画像のパス")
     reference_answer: str = Field(..., description="模範回答")
     model_output: str = Field(..., description="評価対象のモデルが生成した回答")
