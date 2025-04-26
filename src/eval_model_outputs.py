@@ -68,6 +68,8 @@ def evaluate_dataset(
             complete_output = {
                 **workflow_output,
                 "image_path": data_item.image_path,  # EvaluationResult が必要とするフィールド
+                "category": data_item.category,
+                "question_type": data_item.question_type,
             }
 
             result = EvaluationResult(**complete_output)
@@ -139,6 +141,8 @@ if __name__ == "__main__":
     model_with_no_dec_ocr_data = [
         EvaluationData(
             question=qa_set.root[i].question,
+            category=qa_set.root[i].category,
+            question_type=qa_set.root[i].question_type,
             image_path=qa_set.root[i].image_path,
             reference_answer=qa_set.root[i].answer_collect,
             model_output=qa_set.root[i].answer_from_llm_with_no_dec_ocr,
@@ -149,6 +153,8 @@ if __name__ == "__main__":
     model_with_dec_ocr_data = [
         EvaluationData(
             question=qa_set.root[i].question,
+            category=qa_set.root[i].category,
+            question_type=qa_set.root[i].question_type,
             image_path=qa_set.root[i].image_path,
             reference_answer=qa_set.root[i].answer_collect,
             model_output=qa_set.root[i].answer_from_llm_with_dec_ocr,

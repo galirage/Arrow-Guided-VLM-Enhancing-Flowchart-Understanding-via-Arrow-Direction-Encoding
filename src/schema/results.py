@@ -20,6 +20,10 @@ class QAEntry(BaseModel):
         ...,
         description="質問タイプ（整数で管理。1: next-step など）",
     )
+    category: str = Field(
+        ...,
+        description="Flowchart の Node の複雑性カテゴリ（'large', 'medium', 'small'）",
+    )
     question: str = Field(
         ...,
         description="LLM へ投げた質問文",
