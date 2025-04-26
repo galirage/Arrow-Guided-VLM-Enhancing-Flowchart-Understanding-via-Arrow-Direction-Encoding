@@ -125,76 +125,68 @@ def save_model_comparison_to_csv(
 
 # --- 実行例 ---
 if __name__ == "__main__":
-    # 共通の質問とゴールド標準回答
-    questions = [
-        "富士山の高さは？",
-        "日本の首都は？",
-        "水の化学式は？",
-        "人体で最大の臓器は？",
-    ]
+    import json
+    from pathlib import Path
 
-    gold_answers = [
-        "3,776メートルです。",
-        "東京です。",
-        "H2Oです。",
-        "皮膚です。",
-    ]
+    from src.schema.results import QAEvaluationSet
 
-    # Model A のサンプル出力
-    model_a_outputs = [
-        "富士山の高さは3,776メートルです。",
-        "日本の首都は東京です。",
-        "水の化学式はH2O（水素2原子と酸素1原子）です。",
-        "最大の臓器は肝臓です。",  # 不正解
-    ]
+    # スキーマ読み込み
+    data = json.loads(
+        Path("results/q_a_result_predict.json").read_text(encoding="utf-8")
+    )
+    qa_set = QAEvaluationSet.model_validate(data)
 
-    # Model B のサンプル出力
-    model_b_outputs = [
-        "3,776メートル",
-        "東京",
-        "H2O",
-        "皮膚",
-    ]
-
-    # Model A のデータセット作成
-    model_a_data = [
+    model_with_no_dec_ocr_data = [
         EvaluationData(
-            question=question,
-            image_path="no_image",  # 画像なしの場合の有効な値
-            reference_answer=ref,
-            model_output=output,
+            question=qa_set.root[i].question,
+            image_path=qa_set.root[i].image_path,
+            reference_answer=qa_set.root[i].answer_collect,
+            model_output=qa_set.root[i].answer_from_llm_with_no_dec_ocr,
         )
-        for question, ref, output in zip(questions, gold_answers, model_a_outputs)
+        for i in range(len(qa_set.root))
     ]
 
-    # Model B のデータセット作成
-    model_b_data = [
+    model_with_dec_ocr_data = [
         EvaluationData(
-            question=question,
-            image_path="no_image",  # 画像なしの場合の有効な値
-            reference_answer=ref,
-            model_output=output,
+            question=qa_set.root[i].question,
+            image_path=qa_set.root[i].image_path,
+            reference_answer=qa_set.root[i].answer_collect,
+            model_output=qa_set.root[i].answer_from_llm_with_dec_ocr,
         )
-        for question, ref, output in zip(questions, gold_answers, model_b_outputs)
+        for i in range(len(qa_set.root))
     ]
 
     # 各モデルの評価実行
-    print("Model A の評価を実行中...")
-    model_a_results = evaluate_dataset(EvaluationDataset(items=model_a_data))
-    model_a_accuracy = calculate_accuracy_percentage(model_a_results)
-    save_results_to_csv(model_a_results, "results/model_a_evaluation_results.csv")
+    print("Model with no dec ocr の評価を実行中...")
+    model_with_no_dec_ocr_results = evaluate_dataset(
+        EvaluationDataset(items=model_with_no_dec_ocr_data)
+    )
+    model_with_no_dec_ocr_accuracy = calculate_accuracy_percentage(
+        model_with_no_dec_ocr_results
+    )
+    save_results_to_csv(
+        model_with_no_dec_ocr_results,
+        "results/model_with_no_dec_ocr_evaluation_results-001.csv",
+    )
 
-    print("\nModel B の評価を実行中...")
-    model_b_results = evaluate_dataset(EvaluationDataset(items=model_b_data))
-    model_b_accuracy = calculate_accuracy_percentage(model_b_results)
-    save_results_to_csv(model_b_results, "results/model_b_evaluation_results.csv")
+    print("\nModel with dec ocr の評価を実行中...")
+    model_with_dec_ocr_results = evaluate_dataset(
+        EvaluationDataset(items=model_with_dec_ocr_data)
+    )
+    model_with_dec_ocr_accuracy = calculate_accuracy_percentage(
+        model_with_dec_ocr_results
+    )
+    save_results_to_csv(
+        model_with_dec_ocr_results,
+        "results/model_with_dec_ocr_evaluation_results-001.csv",
+    )
 
     # モデル比較結果をCSVに保存
     model_comparison = {
-        "Model A": (model_a_results, model_a_accuracy),
-        "Model B": (model_b_results, model_b_accuracy),
+        "Model A": (model_with_no_dec_ocr_results, model_with_no_dec_ocr_accuracy),
+        "Model B": (model_with_dec_ocr_results, model_with_dec_ocr_accuracy),
     }
 
     save_model_comparison_to_csv(
-        model_comparison, "results/model_comparison_results.csv"
+        model_comparison, "results/model_comparison_results-001.csv"
     )
