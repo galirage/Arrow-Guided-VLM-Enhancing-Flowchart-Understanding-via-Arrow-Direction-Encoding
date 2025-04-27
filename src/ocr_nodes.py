@@ -12,71 +12,8 @@ from state import OCRDetectionState
 # from state import DetectionState
 import json
 from math import sqrt
+import io
 
-# def _get_center(bbox):
-#     """COCO形式 [x, y, w, h] の中心座標を返す"""
-#     return (bbox[0] + bbox[2]/2, bbox[1] + bbox[3]/2)
-
-# def _euclidean_dist(p1, p2):
-#     """2点間の距離"""
-#     return sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
-
-# def _is_near_bbox(point, bbox, margin=10):
-#     """点がbboxの近傍にあるかどうかを判定（上下左右 margin ピクセルまで許容）"""
-#     x, y, w, h = bbox
-#     px, py = point
-#     return (x - margin <= px <= x + w + margin) and (y - margin <= py <= y + h + margin)
-#
-# def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
-#     objects = {}  # object_num: {type, text, center}
-#     arrows = []   # {start_center, end_center}
-
-#     arrow_starts = []
-#     arrow_ends = []
-
-#     object_num = 1
-#     id_to_objnum = {}
-
-#     # 1. オブジェクトと矢印の分類
-#     for ann in state['detection_ocr_result']['annotations']:
-#         cat_id = ann['category_id']
-#         center = _get_center(ann['bbox'])
-
-#         if cat_id in state['object_categories']:
-#             obj = {
-#                 "type": state['object_categories'][cat_id],
-#                 "text": ann.get('text', ''),
-#                 "center": center,
-#                 "object_num": object_num,
-#                 "before_object": [],
-#                 "after_object": [],
-#             }
-#             objects[object_num] = obj
-#             id_to_objnum[ann['id']] = object_num
-#             object_num += 1
-#         elif cat_id == state['arrow_start']:
-#             arrow_starts.append(center)
-#         elif cat_id == state['arrow_end']:
-#             arrow_ends.append(center)
-#     # print("---------------- state 100 ------------------")
-#     # print("arrow_starts, ", arrow_starts)
-#     # print("---------------- state 100 ------------------")
-#     # print("arrow_ends", arrow_ends)
-
-#     # 2. 矢印の組み合わせ
-#     for start, end in zip(arrow_starts, arrow_ends):
-#         # 各中心点に一番近いオブジェクトを探す
-#         start_obj = min(objects.values(), key=lambda obj: _euclidean_dist(obj['center'], start))
-#         end_obj = min(objects.values(), key=lambda obj: _euclidean_dist(obj['center'], end))
-
-#         # 相互に記録
-#         start_obj['after_object'].append(end_obj['object_num'])
-#         end_obj['before_object'].append(start_obj['object_num'])
-#     directed_graph = _format_for_llm(objects)
-#     print("-------------- directed graph -----------------")
-#     print(directed_graph)
-#     state["directed_graph_text"] = directed_graph
-#     return state
 
 def _calculate_iou(boxA, boxB):
     xA = max(boxA[0], boxB[0])
@@ -125,7 +62,14 @@ def _is_near_bbox_edge(point, bbox, margin=20):
 
     return near_left or near_right or near_top or near_bottom
 
+
 def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
+    # OCRテキスト（位置付き）を取得
+    ocr_texts = [
+    (text, _convert_polygon_to_bbox(coords))
+    for text, coords in state['text_and_bboxes']
+]
+
     objects = {}  # object_num: {type, text, center, bbox, before_object, after_object}
     arrows = []   # [{start_point, end_point}]
     arrow_start_candidates = []  # [(x, y)]
@@ -163,69 +107,116 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
     print("arrow_start_candidates, ", arrow_start_candidates)
     
     arrow_start_end_margin = 30
-    arrow_start_end_margin = 30
     iou_threshold = 0.3
     ARROW_SIZE_THRESHOLD = 2000
 
+    # for bbox in arrow_bboxes:
+    #     bbox_area = bbox[2] * bbox[3]
+
+    #     if bbox_area >= ARROW_SIZE_THRESHOLD:
+    #         # ----------------------
+    #         # 大きな矢印 → IoUベースで最適なstart/endペアを探す
+    #         best_iou = 0
+    #         best_pair = None
+
+    #         for start_pt in arrow_start_candidates:
+    #             for end_pt in arrow_end_candidates:
+    #                 start_end_bbox = _bbox_from_two_points(start_pt, end_pt)
+    #                 iou = _calculate_iou(bbox, start_end_bbox)
+
+    #                 if iou > best_iou:
+    #                     best_iou = iou
+    #                     best_pair = (start_pt, end_pt)
+
+    #         if best_pair and best_iou >= iou_threshold:
+    #             arrows.append({
+    #                 "start": best_pair[0],
+    #                 "end": best_pair[1]
+    #             })
+
+    #     else:
+    #         # ----------------------
+    #         # 小さな矢印 → bboxの縁に近いstart/endを1個ずつ探す（従来方式）
+    #         matched_start = None
+    #         matched_end = None
+
+    #         for pt in arrow_start_candidates:
+    #             if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
+    #                 matched_start = pt
+    #                 break
+
+    #         for pt in arrow_end_candidates:
+    #             if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
+    #                 matched_end = pt
+    #                 break
+
+    #         if matched_start and matched_end:
+    #             arrows.append({
+    #                 "start": matched_start,
+    #                 "end": matched_end
+    #             })
     for bbox in arrow_bboxes:
         bbox_area = bbox[2] * bbox[3]
 
+        matched_start = None
+        matched_end = None
+
         if bbox_area >= ARROW_SIZE_THRESHOLD:
-            # ----------------------
             # 大きな矢印 → IoUベースで最適なstart/endペアを探す
             best_iou = 0
             best_pair = None
-
             for start_pt in arrow_start_candidates:
                 for end_pt in arrow_end_candidates:
                     start_end_bbox = _bbox_from_two_points(start_pt, end_pt)
                     iou = _calculate_iou(bbox, start_end_bbox)
-
                     if iou > best_iou:
                         best_iou = iou
                         best_pair = (start_pt, end_pt)
 
             if best_pair and best_iou >= iou_threshold:
-                arrows.append({
-                    "start": best_pair[0],
-                    "end": best_pair[1]
-                })
+                matched_start, matched_end = best_pair
 
         else:
-            # ----------------------
-            # 小さな矢印 → bboxの縁に近いstart/endを1個ずつ探す（従来方式）
-            matched_start = None
-            matched_end = None
-
+            # 小さな矢印 → bboxの縁に近いstart/endを1個ずつ探す
             for pt in arrow_start_candidates:
                 if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
                     matched_start = pt
                     break
-
             for pt in arrow_end_candidates:
                 if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
                     matched_end = pt
                     break
 
-            if matched_start and matched_end:
-                arrows.append({
-                    "start": matched_start,
-                    "end": matched_end
-                })
+        if matched_start and matched_end:
+            # 矢印に関連するテキスト（yes/noなど）をマッチング（IoUで判定）
+            # label = None
+            # best_label_iou = 0.0
+            # for text, text_bbox in ocr_texts:
+            #     iou = _calculate_iou(bbox, text_bbox)
+            #     if iou > 0.3 and iou > best_label_iou:
+            #         label = text
+            #         best_label_iou = iou
+            # 矢印に関連するテキスト（yes/noなど）をマッチング：bboxの縁の近くにあるもの
+            label = None
+            for text, text_bbox in ocr_texts:
+                if _is_near_bbox_edge(_get_center(text_bbox), bbox, margin=20):
+                    label = text
+                    break  # 最初に見つかったものを採用（必要に応じて変更可）
+
+            arrows.append({
+                "start": matched_start,
+                "end": matched_end,
+                "label": label
+            })
 
     # 3. 矢印の始点・終点がどの object の bbox edge に近いかを調べる
     for arrow in arrows:
         start_pt = arrow["start"]
         end_pt = arrow["end"]
-
+        label = arrow.get("label")
         start_obj = None
         end_obj = None
 
-        # for obj in objects.values():
-        #     if start_obj is None and _is_near_bbox_edge(start_pt, obj['bbox']):
-        #         start_obj = obj
-        #     if end_obj is None and _is_near_bbox_edge(end_pt, obj['bbox']):
-        #         end_obj = obj
         for obj in objects.values():
             if start_obj is None and _is_near_bbox_edge(start_pt, obj['bbox']):
                 start_obj = obj
@@ -238,8 +229,17 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
                 end_obj = obj
 
         if start_obj and end_obj:
-            start_obj['after_object'].append(end_obj['object_num'])
-            end_obj['before_object'].append(start_obj['object_num'])
+            # start_obj['after_object'].append((end_obj['object_num'], label))
+            # end_obj['before_object'].append((start_obj['object_num'], label))
+            if start_obj['object_num'] != end_obj['object_num']:
+                # start_obj が decision のときのみ label を記録
+                if start_obj['type'].lower() == "decision":
+                    start_obj['after_object'].append((end_obj['object_num'], label))
+                    end_obj['before_object'].append((start_obj['object_num'], label))
+                else:
+                    # 他のタイプの矢印はラベルなしで繋ぐ
+                    start_obj['after_object'].append((end_obj['object_num'], None))
+                    end_obj['before_object'].append((start_obj['object_num'], None))
 
     # 4. LLMに渡す形式のテキスト出力を生成
     directed_graph = _format_for_llm(objects)
@@ -250,22 +250,47 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
     return state
 
 
-    
-
+# def _format_for_llm(objects: Dict[int, dict]) -> str:
+#     lines = []
+#     for obj in objects.values():
+#         line = f"type: {obj['type']}, text: {obj['text']}, object_num: {obj['object_num']}"
+#         if obj['before_object']:
+#             befores = ', '.join(f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" for num in obj['before_object'])
+#             line += f"\n    before_object: {befores}"
+#         else:
+#             line += f"\n    before_object: none"
+#         if obj['after_object']:
+#             afters = ', '.join(f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" for num in obj['after_object'])
+#             line += f"\n    after_object: {afters}"
+#         else:
+#             line += f"\n    after_object: none"
+#         lines.append(line)
+#     return '\n\n'.join(lines)
 def _format_for_llm(objects: Dict[int, dict]) -> str:
     lines = []
     for obj in objects.values():
         line = f"type: {obj['type']}, text: {obj['text']}, object_num: {obj['object_num']}"
+
         if obj['before_object']:
-            befores = ', '.join(f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" for num in obj['before_object'])
+            befores = ', '.join(
+                f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" +
+                (f", label: {label}" if label else "")
+                for num, label in obj['before_object']
+            )
             line += f"\n    before_object: {befores}"
         else:
             line += f"\n    before_object: none"
+
         if obj['after_object']:
-            afters = ', '.join(f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" for num in obj['after_object'])
+            afters = ', '.join(
+                f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" +
+                (f", label: {label}" if label else "")
+                for num, label in obj['after_object']
+            )
             line += f"\n    after_object: {afters}"
         else:
             line += f"\n    after_object: none"
+
         lines.append(line)
     return '\n\n'.join(lines)
 
@@ -312,10 +337,20 @@ def _create_filename_with_timestamp() -> str:
 
 def run_azure_ocr(state: OCRDetectionState) -> OCRDetectionState: # run ocr
     image_path = state["image_path"]
-    with open(image_path, "rb") as f:
-        poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=f)
-        result = poller.result()
-        print("type(result) : ", type(result))
+    if image_path.lower().endswith(".webp"):
+        with Image.open(image_path) as img:
+            byte_stream = io.BytesIO()
+            img.save(byte_stream, format="PNG")
+            byte_stream.seek(0)
+            print("Converted WebP to PNG in memory.")
+            poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=byte_stream)
+    else:
+        with open(image_path, "rb") as f:
+            poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=f)
+    # with open(image_path, "rb") as f:
+    #     poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=f)
+    result = poller.result()
+    print("type(result) : ", type(result))
     extracted_text = "\n".join([line.content for page in result.pages for line in page.lines])
     state["image_path"] = image_path
     state["extracted_text"] = extracted_text

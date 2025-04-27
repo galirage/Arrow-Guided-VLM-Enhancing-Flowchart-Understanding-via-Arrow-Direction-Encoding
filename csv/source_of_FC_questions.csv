@@ -1,0 +1,91 @@
+﻿category,img_file_name,question_type,q_ref_step1,q_ref_step2,q_ref_yes_no,answer_ref_step
+large,190,2,Txn conflict?,,yes,Road Memory Image
+large,190,2,Abort?,,yes,onAbort
+large,190,2,User conflict?,,yes,onConflict
+large,179,1,Contact Customer to Request Balance of Payment,,,Receive Payment in Mail
+large,179,1,Issue Refund for Amount of Overpayment,,,Record Receipt in Accounting System and Deposit Check
+large,179,3,Match Payment to Invoice,Does Payment Correspoind to Outstanding Invoice?,,Create Invoice for Order
+large,167,2,"Reach 300,000 flight takeoffs and landing?",,no,Detailed visual inspectation at 30000 intervals
+large,167,2,Fracture after ground-air-ground loading?,,yes,End of experiment
+large,167,3,Using random load spectrum experiments,Start of fatigue experiment,,"Replacement parts, continue experimentation"
+large,151,1,Create packing slip and invoice,,,Ship to customer
+large,151,1,Pick up items from current inventory,,,Box and package the items
+large,151,2,"PCP decision: pick, order, or produce?",,Produce,Determine quantity
+large,154,2,Decide to quote,,No,Program requisition
+large,154,3,Review quote,Revise quote,,Order acceptable?
+large,154,2,Quote acceptable?,,"No, send quote response",Revice quote
+large,155,1,Credit criteria,,,Credit check
+large,155,2,Credit check,,Bad credit,Sale not approved
+large,155,3,Order entry,sales call,,Credit form
+large,165,1,Player's 2 Turn,,,Will player one connect three X's on their next turn
+large,165,1,In No: Continue to place your O on the remaining 6 places to connect three in a row.,,,Player one's turn
+large,165,3,Player's 2 Turn,1st player places their X on any of the 7 spaces,,In YES: Then place your X on the space that will block their win
+large,150,1,p = p + 2,,,Is p even?
+large,150,2,Dose S = 0?,,No,p = p + 2
+large,150,2,Is p < S?,,No,S = S - 1
+large,112,2,Showing,,Yes,Walk to school
+large,112,2,Raining ,,No,Cycle to school
+large,112,2,Temperature,,Above freezing opint,Wet road
+large,117,2,Have you adapted the figure?,,Yes,STM Permissions Guidelines do not apply
+large,117,1,Obtain permission from the copyright owner (this is usually the creator),,,Send permission to relevant IOP joumal/ebook mailbox as evidence of permission
+large,117,1,obtain permission from the copyright owner(usually the publisher),,,Send permission to relevant IOP joumal/ebook mailbox as evidence of permission
+medium,2,2,Are Financial Statements Accurate,,Yes,Final Reoporting
+medium,2,2,Are Financial Statements Accurate,,No,Investigate and resolve discrepancies
+medium,2,3,Review Finalcial Statements,Journal Entries and Adjustments,,Investigate and resolve discrepancies
+medium,9,1,Notify customer,,,Is item still in stock?
+medium,9,1,Hand off to carrier,,,Email customer with shipping confirmation and tracking info
+medium,9,2,Is item still in stock?,,No,Email customer and cancel order
+medium,19,2,Decision?,,Choice 2,Process step 1
+medium,19,1,Process step 5,,,Process step 6
+medium,19,2,Decision?,,Choice 1,Process step 2
+medium,25,2,Quality Check,,Not OK,Send order to Warehouse
+medium,25,3,Add Payment Info,Add Shippinig Info,,Present Error Message
+medium,25,2,Valid Payment?,,Yes,Send order to Warehouse
+medium,29,2,Testing,,No,Refinement
+medium,29,2,Prototype,,No,Refinement
+medium,29,1,Design,,,Testing
+medium,37,2,Prototype evaluation,,Yes,Design
+medium,37,1,Quick design,,,Prototyping
+medium,37,1,Research,,,New product idea
+medium,52,2,Cross Loading in Pattern Matrix Table?,,Yes,Drop the Item
+medium,52,2,Communalities Less than 0.5 ?,,Yes,Drop the Item
+medium,52,1,Factors Retained,,,Results Interpreation
+medium,102,2,Correct Dimensional,,NO,Draw 2D model of component
+medium,102,1,extrude cut,,,Assemble all part
+medium,102,1,Sketch light source,,,Extrude base to create 3D feature of fiber optic
+medium,152,1,Found = true,,,While found = false and not at end of array
+medium,152,2,If found = true,,Yes,item found
+medium,152,2,if item = search,,No,While found = false and not at end of array
+medium,110,1,Update number of visited page = number of visited page + 1; id of the next site = id of the current site + random(1.86);,,,number of visited page>5?
+medium,110,2,number of visited page>5?,,yes,End
+medium,110,2,The player's answer is correct?,,yes,Put a clothes on the figure
+small,3,2,inspect,,Rejected,Process 2
+small,3,2,inspect,,Accepted,Process 3
+small,3,1,Process 3,,,End
+small,7,2,Water boiled?,,N,Wait
+small,7,2,Water boiled?,,Y,Pour water on teabag in cup
+small,7,1,Wait,,,Wait for kettle to boll
+small,49,3,Experimental Data,Start,,Data Files
+small,49,1,Calculate Relative Abundances,,,Draw Spectrum
+small,49,1,Format Data,,,Select Data to Process
+small,101,3,Identify resources and estimate costs,Client expectations and constraints,,Project Defmition Report
+small,101,2,Cost within budget,,No,Review scope and schedule
+small,101,2,Cost within budget,,Yes,Cost Management Plan
+small,106,2,num1 > num2,,TRUE,num1 ++; num2--;
+small,106,2,num1 > num2,,FALSE,num1 ++; num2--;
+small,106,1,"(output) Display: num1, num2",,,End
+small,109,2,X < 20,,YES,Increment X by 1
+small,109,3,Increment X by 1,Initialize X < 0,,X < 20
+small,109,1,Print X,,,X < 20
+small,113,2,Temp < 32?,,Yes,"Print ""below Freezing"""
+small,113,2,Temp < 32?,,No,"Print ""Above Freezing"""
+small,113,1,start,,,Read Temp
+small,194,2,Decision,,Yes,Action
+small,194,2,Decision,,No,Action
+small,194,1,Step,,,Decision
+small,20,2,Lamp plugged in?,,No,Plug in lamp
+small,20,2,Bulb burned out?,,No,Repair lamp
+small,20,2,Bulb burned out?,,Yes,Replace bulb
+small,17,2,Email Verification completed?,,No,Complete verification
+small,17,2,Email Verification completed?,,Yes,Account Created
+small,17,1,Sign Up,,,Enter email & password

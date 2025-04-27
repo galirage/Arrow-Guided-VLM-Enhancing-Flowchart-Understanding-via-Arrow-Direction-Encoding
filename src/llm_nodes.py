@@ -29,6 +29,15 @@ def _encode_image_to_base64(image_path:str) -> str:
         return base64.b64encode(image_file.read()).decode("utf-8") 
 
 def print_result(state: OCRDetectionState) -> OCRDetectionState:
+    """
+    results.append({'question_type': q_a1['question_type'],
+                    'question': q_a1['question'],
+                    'answer_collect': q_a1['answer_collect'],
+                    'answer_from_llm_with_no_dec_ocr': output_ori.content,
+                    'answer_from_llm_with_dec_ocr': output_dec_ocr.content,
+                    })
+    state['llm_result'] = results
+    """
     return state
 
 def _get_question(image_num:int) -> List[Dict[str, str]]:
@@ -46,15 +55,15 @@ def _get_question(image_num:int) -> List[Dict[str, str]]:
         if row['question_type'] == 1:
             question = "In this flowchart diagram, what is the next step after '{}'?".format(row['q_ref_step1'])
             answer = "The next step after '{}' is '{}'.".format(row['q_ref_step1'], row['answer_ref_step'])
-            question_answers.append({'question':question, 'answer_collect':answer})
+            question_answers.append({'question_type':row['question_type'], 'question':question, 'answer_collect':answer})
         elif row['question_type'] == 2:
-            question = ""
-            answer = ""
-            question_answers.append({'question':question, 'answer_collect':answer})
+            question = "In this flowchart diagram, if '{}' is '{}', what is the next step?".format(row['q_ref_step1'], row['q_ref_yes_no'])
+            answer = "If '{}' is '{}', the next step is '{}'.".format(row['q_ref_step1'], row['q_ref_yes_no'], row['answer_ref_step'])
+            question_answers.append({'question_type':row['question_type'], 'question':question, 'answer_collect':answer})
         else: # 3
             question = "In the flowchart diagram, which of the steps before an object '{}' except '{}'?".format(row['q_ref_step1'], row['q_ref_step2'])
-            answer = "The next step after '{}' is '{}'.".format(row['q_ref_step1'], row['answer_ref_step'])
-            question_answers.append({'question':question, 'answer_collect':answer})
+            answer = "The step before '{}' except '{}' is '{}'.".format(row['q_ref_step1'], row['q_ref_step2'], row['answer_ref_step'])
+            question_answers.append({'question_type':row['question_type'], 'question':question, 'answer_collect':answer})
     return question_answers
 
 
@@ -193,7 +202,7 @@ def ask_to_llm(state: OCRDetectionState) -> OCRDetectionState:
     )
     question_answer_list = _get_question(image_num)
     results = []
-    for q_a1 in question_answer_list:
+    for q_num, q_a1 in enumerate(question_answer_list):
 
         question_prompt = "Please answer the following questions using the following flow-chart diagram. \n\n"
         question_prompt += q_a1['question'] + "\n"
@@ -235,7 +244,11 @@ def ask_to_llm(state: OCRDetectionState) -> OCRDetectionState:
         print("answer_llm with detection, ocr: ", output_dec_ocr.content)
 
         # print("type(output), ", type(output))
-        results.append({'question': q_a1['question'],
+        results.append({'image_path':state['image_path'],
+                        'image_num':state['image_num'],
+                        'question_id':'{}_{}'.format(state['image_num'], q_num),
+                        'question_type': q_a1['question_type'],
+                        'question': q_a1['question'],
                         'answer_collect': q_a1['answer_collect'],
                         'answer_from_llm_with_no_dec_ocr': output_ori.content,
                         'answer_from_llm_with_dec_ocr': output_dec_ocr.content,

@@ -19,6 +19,7 @@ from math import sqrt
 from typing import List, Dict, Tuple
 from llm_nodes import ask_to_llm_with_detection_result, ask_to_llm, print_result
 from ocr_nodes import build_flowchart_graph, run_azure_ocr, match_textBbox_to_detectionResult, get_result
+import glob
 # from graphviz import Digraph
 
 
@@ -27,7 +28,7 @@ def parser():
     parser.add_argument('--process_name', '-pn', type=str, default='load_pdf', help='process name')
     parser.add_argument('--img_num', '-ign', type=int, default=163, help='image number')
     parser.add_argument('--img_path', '-igp', type=str, default="../images/flowchart-example163.png", help='image path')
-    parser.add_argument('--output_dir', '-od', type=str, default='output/', help='path to output directory')
+    parser.add_argument('--output_dir', '-od', type=str, default='../output/', help='path to output directory')
     return parser.parse_args()
 
 
@@ -99,13 +100,43 @@ def main(args):
 
     # run langgraph
     final_state = graph.invoke(input_state)
+    return final_state['llm_result'] # list[dict]
+
+def all_image(args):
+    # img_files = glob.glob('../images_predict/*')
+    img_files = glob.glob('../images/*')
+    print("img_files")
+    print("len(img_files) ", len(img_files))
+    all_results = []
+    for num, file1 in enumerate(img_files):
+        # if num > 3:
+        #     continue
+        try:
+            args.img_path = file1
+            results1 = main(args)
+            # print('results1', results1)
+            for result1 in results1:
+                all_results.append(result1)
+        except:
+            print("img_path:{} is not done!!")
+
+    with open(os.path.join(args.output_dir, 'q_a_result.json'), 'w', encoding='utf-8') as f:
+        json.dump(all_results, f)
+
 
 if __name__ == '__main__':
     """
     usage)
+     1) for each image
     python graph.py --process_name main --img_path ../images/flowchart-example179.png
+     2) for all image
+    python graph.py --process_name all_image
 
     """
     args = parser()
     if args.process_name == 'main':
-        main(args)
+        results = main(args)
+        with open(os.path.join(args.output_dir, 'q_a_result_017.json'), 'w', encoding='utf-8') as f:
+            json.dump(results, f)
+    elif args.process_name == 'all_image':
+        all_image(args)
