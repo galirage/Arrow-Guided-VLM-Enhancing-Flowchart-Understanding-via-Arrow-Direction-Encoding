@@ -58,32 +58,6 @@ def _is_near_bbox_edge(point, bbox, margin=20):
     return near_left or near_right or near_top or near_bottom
 
 
-def _format_for_llm(objects: dict[int, dict]) -> str:
-    lines = []
-    for obj in objects.values():
-        line = (
-            f"type: {obj['type']}, text: {obj['text']}, object_num: {obj['object_num']}"
-        )
-        if obj["before_object"]:
-            befores = ", ".join(
-                f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}"
-                for num in obj["before_object"]
-            )
-            line += f"\n    before_object: {befores}"
-        else:
-            line += "\n    before_object: none"
-        if obj["after_object"]:
-            afters = ", ".join(
-                f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}"
-                for num in obj["after_object"]
-            )
-            line += f"\n    after_object: {afters}"
-        else:
-            line += "\n    after_object: none"
-        lines.append(line)
-    return "\n\n".join(lines)
-
-
 def _convert_polygon_to_bbox(polygon: list[tuple[float, float]]) -> list[float]:
     """4点のpolygonを[x, y, w, h]に変換"""
     xs = [p[0] for p in polygon]
@@ -120,9 +94,12 @@ def _calculate_containment_ratio(boxA: list[float], boxB: list[float]) -> float:
 def build_flowchart_graph(
     state: OCRDetectionState, config: RunnableConfig
 ) -> dict[str, str]:
-    """
-    矢印の始点・終点がどの object の bbox edge に近いかを調べる。
-    """
+    # OCRテキスト（位置付き）を取得
+    ocr_texts = [
+        (text, _convert_polygon_to_bbox(coords))
+        for text, coords in state.text_and_bboxes
+    ]
+
     objects: dict[
         int, dict
     ] = {}  # object_num: {type, text, center, bbox, before_object, after_object}
@@ -136,10 +113,10 @@ def build_flowchart_graph(
     object_num = 1
     id_to_objnum = {}
 
-    # 1. オブジェクト・矢印情報を分類
     if state.detection_ocr_result is None:
         raise ValueError("detection_ocr_result is None")
 
+    # 1. オブジェクト・矢印情報を分類
     for ann in state.detection_ocr_result["annotations"]:
         cat_id = ann["category_id"]
         bbox = ann["bbox"]
@@ -167,55 +144,55 @@ def build_flowchart_graph(
     print("arrow_start_candidates, ", arrow_start_candidates)
 
     arrow_start_end_margin = 30
-    arrow_start_end_margin = 30
     iou_threshold = 0.3
     ARROW_SIZE_THRESHOLD = 2000
 
     for bbox in arrow_bboxes:
         bbox_area = bbox[2] * bbox[3]
 
+        matched_start = None
+        matched_end = None
+
         if bbox_area >= ARROW_SIZE_THRESHOLD:
-            # ----------------------
             # 大きな矢印 → IoUベースで最適なstart/endペアを探す
             best_iou = 0
             best_pair = None
-
             for start_pt in arrow_start_candidates:
                 for end_pt in arrow_end_candidates:
                     start_end_bbox = _bbox_from_two_points(start_pt, end_pt)
                     iou = _calculate_iou(bbox, start_end_bbox)
-
                     if iou > best_iou:
                         best_iou = iou
                         best_pair = (start_pt, end_pt)
 
             if best_pair and best_iou >= iou_threshold:
-                arrows.append({"start": best_pair[0], "end": best_pair[1]})
+                matched_start, matched_end = best_pair
 
         else:
-            # ----------------------
-            # 小さな矢印 → bboxの縁に近いstart/endを1個ずつ探す（従来方式）
-            matched_start = None
-            matched_end = None
-
+            # 小さな矢印 → bboxの縁に近いstart/endを1個ずつ探す
             for pt in arrow_start_candidates:
                 if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
                     matched_start = pt
                     break
-
             for pt in arrow_end_candidates:
                 if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
                     matched_end = pt
                     break
 
-            if matched_start and matched_end:
-                arrows.append({"start": matched_start, "end": matched_end})
+        if matched_start and matched_end:
+            label = None
+            for text, text_bbox in ocr_texts:
+                if _is_near_bbox_edge(_get_center(text_bbox), bbox, margin=20):
+                    label = text
+                    break  # 最初に見つかったものを採用（必要に応じて変更可）
+
+            arrows.append({"start": matched_start, "end": matched_end, "label": label})
 
     # 3. 矢印の始点・終点がどの object の bbox edge に近いかを調べる
     for arrow in arrows:
         start_pt = arrow["start"]
         end_pt = arrow["end"]
-
+        label = arrow.get("label")
         start_obj = None
         end_obj = None
 
@@ -234,17 +211,55 @@ def build_flowchart_graph(
                 end_obj = obj
 
         if start_obj and end_obj:
-            start_obj["after_object"].append(end_obj["object_num"])
-            end_obj["before_object"].append(start_obj["object_num"])
+            # start_obj['after_object'].append((end_obj['object_num'], label))
+            # end_obj['before_object'].append((start_obj['object_num'], label))
+            if start_obj["object_num"] != end_obj["object_num"]:
+                # start_obj が decision のときのみ label を記録
+                if start_obj["type"].lower() == "decision":
+                    start_obj["after_object"].append((end_obj["object_num"], label))
+                    end_obj["before_object"].append((start_obj["object_num"], label))
+                else:
+                    # 他のタイプの矢印はラベルなしで繋ぐ
+                    start_obj["after_object"].append((end_obj["object_num"], None))
+                    end_obj["before_object"].append((start_obj["object_num"], None))
 
     # 4. LLMに渡す形式のテキスト出力を生成
     directed_graph = _format_for_llm(objects)
     print("-------------- directed graph -----------------")
     print(directed_graph)
 
-    return {
-        "directed_graph_text": directed_graph,
-    }
+    return {"directed_graph_text": directed_graph}
+
+
+def _format_for_llm(objects: dict[int, dict]) -> str:
+    lines = []
+    for obj in objects.values():
+        line = (
+            f"type: {obj['type']}, text: {obj['text']}, object_num: {obj['object_num']}"
+        )
+
+        if obj["before_object"]:
+            befores = ", ".join(
+                f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}"
+                + (f", label: {label}" if label else "")
+                for num, label in obj["before_object"]
+            )
+            line += f"\n    before_object: {befores}"
+        else:
+            line += "\n    before_object: none"
+
+        if obj["after_object"]:
+            afters = ", ".join(
+                f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}"
+                + (f", label: {label}" if label else "")
+                for num, label in obj["after_object"]
+            )
+            line += f"\n    after_object: {afters}"
+        else:
+            line += "\n    after_object: none"
+
+        lines.append(line)
+    return "\n\n".join(lines)
 
 
 def run_azure_ocr(
