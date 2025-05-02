@@ -1,19 +1,14 @@
 import argparse
-import datetime
-import io
 
 # from state import DetectionState
 import json
-import os
-from math import sqrt
-from typing import Dict, List, Tuple
 
-from azure.ai.formrecognizer import DocumentAnalysisClient
-from azure.core.credentials import AzureKeyCredential
-from dotenv import load_dotenv
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, StateGraph
-from PIL import Image, ImageDraw
-from state import OCRDetectionState
+
+from .configuration import ArrowGuidedVLMConfiguration
+from .state import OCRDetectionState
+from .utils import init_document_analysis_client
 
 
 def _calculate_iou(boxA, boxB):
@@ -48,11 +43,6 @@ def _get_center(bbox):
     return (bbox[0] + bbox[2] / 2, bbox[1] + bbox[3] / 2)
 
 
-def _euclidean_dist(p1, p2):
-    """2点間のユークリッド距離"""
-    return sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
-
-
 def _is_near_bbox_edge(point, bbox, margin=20):
     """
     点が bbox の上下左右の辺に margin ピクセル以内で近いかどうかを判定
@@ -68,31 +58,73 @@ def _is_near_bbox_edge(point, bbox, margin=20):
     return near_left or near_right or near_top or near_bottom
 
 
-def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
+def _convert_polygon_to_bbox(polygon: list[tuple[float, float]]) -> list[float]:
+    """4点のpolygonを[x, y, w, h]に変換"""
+    xs = [p[0] for p in polygon]
+    ys = [p[1] for p in polygon]
+    x_min = min(xs)
+    y_min = min(ys)
+    x_max = max(xs)
+    y_max = max(ys)
+    return [x_min, y_min, x_max - x_min, y_max - y_min]
+
+
+def _calculate_containment_ratio(boxA: list[float], boxB: list[float]) -> float:
+    """
+    boxB（小さい方、textのbbox）がどれだけboxA（大きい方、object）に含まれているかを返す。
+    0〜1のスコア。1に近いほど、boxBはboxAにしっかり含まれている。
+    """
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[0] + boxA[2], boxB[0] + boxB[2])
+    yB = min(boxA[1] + boxA[3], boxB[1] + boxB[3])
+
+    inter_width = max(0, xB - xA)
+    inter_height = max(0, yB - yA)
+    inter_area = inter_width * inter_height
+
+    boxB_area = boxB[2] * boxB[3]
+
+    if boxB_area == 0:
+        return 0.0
+
+    return inter_area / boxB_area
+
+
+def build_flowchart_graph(
+    state: OCRDetectionState, config: RunnableConfig
+) -> dict[str, str]:
     # OCRテキスト（位置付き）を取得
     ocr_texts = [
         (text, _convert_polygon_to_bbox(coords))
-        for text, coords in state["text_and_bboxes"]
+        for text, coords in state.text_and_bboxes
     ]
 
-    objects = {}  # object_num: {type, text, center, bbox, before_object, after_object}
-    arrows = []  # [{start_point, end_point}]
-    arrow_start_candidates = []  # [(x, y)]
-    arrow_end_candidates = []  # [(x, y)]
-    arrow_bboxes = []  # arrow自体（category_id=2）
+    objects: dict[
+        int, dict
+    ] = {}  # object_num: {type, text, center, bbox, before_object, after_object}
+    arrows: list[dict] = []  # [{start_point, end_point}]
+    arrow_start_candidates: list[tuple[float, float]] = []  # [(x, y)]
+    arrow_end_candidates: list[tuple[float, float]] = []  # [(x, y)]
+    arrow_bboxes: list[
+        tuple[float, float, float, float]
+    ] = []  # arrow自体（category_id=2）
 
     object_num = 1
     id_to_objnum = {}
 
+    if state.detection_ocr_result is None:
+        raise ValueError("detection_ocr_result is None")
+
     # 1. オブジェクト・矢印情報を分類
-    for ann in state["detection_ocr_result"]["annotations"]:
+    for ann in state.detection_ocr_result["annotations"]:
         cat_id = ann["category_id"]
         bbox = ann["bbox"]
         center = _get_center(bbox)
 
-        if cat_id in state["object_categories"]:
+        if cat_id in state.object_categories:
             obj = {
-                "type": state["object_categories"][cat_id],
+                "type": state.object_categories[cat_id],
                 "text": ann.get("text", ""),
                 "center": center,
                 "bbox": bbox,
@@ -103,11 +135,11 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
             objects[object_num] = obj
             id_to_objnum[ann["id"]] = object_num
             object_num += 1
-        elif cat_id == state["arrow_start"]:
+        elif cat_id == state.arrow_start:
             arrow_start_candidates.append(center)
-        elif cat_id == state["arrow_end"]:
+        elif cat_id == state.arrow_end:
             arrow_end_candidates.append(center)
-        elif cat_id == state["arrow_category"]:
+        elif cat_id == state.arrow_category:
             arrow_bboxes.append(bbox)
     print("arrow_start_candidates, ", arrow_start_candidates)
 
@@ -115,51 +147,6 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
     iou_threshold = 0.3
     ARROW_SIZE_THRESHOLD = 2000
 
-    # for bbox in arrow_bboxes:
-    #     bbox_area = bbox[2] * bbox[3]
-
-    #     if bbox_area >= ARROW_SIZE_THRESHOLD:
-    #         # ----------------------
-    #         # 大きな矢印 → IoUベースで最適なstart/endペアを探す
-    #         best_iou = 0
-    #         best_pair = None
-
-    #         for start_pt in arrow_start_candidates:
-    #             for end_pt in arrow_end_candidates:
-    #                 start_end_bbox = _bbox_from_two_points(start_pt, end_pt)
-    #                 iou = _calculate_iou(bbox, start_end_bbox)
-
-    #                 if iou > best_iou:
-    #                     best_iou = iou
-    #                     best_pair = (start_pt, end_pt)
-
-    #         if best_pair and best_iou >= iou_threshold:
-    #             arrows.append({
-    #                 "start": best_pair[0],
-    #                 "end": best_pair[1]
-    #             })
-
-    #     else:
-    #         # ----------------------
-    #         # 小さな矢印 → bboxの縁に近いstart/endを1個ずつ探す（従来方式）
-    #         matched_start = None
-    #         matched_end = None
-
-    #         for pt in arrow_start_candidates:
-    #             if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
-    #                 matched_start = pt
-    #                 break
-
-    #         for pt in arrow_end_candidates:
-    #             if _is_near_bbox_edge(pt, bbox, margin=arrow_start_end_margin):
-    #                 matched_end = pt
-    #                 break
-
-    #         if matched_start and matched_end:
-    #             arrows.append({
-    #                 "start": matched_start,
-    #                 "end": matched_end
-    #             })
     for bbox in arrow_bboxes:
         bbox_area = bbox[2] * bbox[3]
 
@@ -193,15 +180,6 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
                     break
 
         if matched_start and matched_end:
-            # 矢印に関連するテキスト（yes/noなど）をマッチング（IoUで判定）
-            # label = None
-            # best_label_iou = 0.0
-            # for text, text_bbox in ocr_texts:
-            #     iou = _calculate_iou(bbox, text_bbox)
-            #     if iou > 0.3 and iou > best_label_iou:
-            #         label = text
-            #         best_label_iou = iou
-            # 矢印に関連するテキスト（yes/noなど）をマッチング：bboxの縁の近くにあるもの
             label = None
             for text, text_bbox in ocr_texts:
                 if _is_near_bbox_edge(_get_center(text_bbox), bbox, margin=20):
@@ -250,27 +228,10 @@ def build_flowchart_graph(state: OCRDetectionState) -> OCRDetectionState:
     print("-------------- directed graph -----------------")
     print(directed_graph)
 
-    state["directed_graph_text"] = directed_graph
-    return state
+    return {"directed_graph_text": directed_graph}
 
 
-# def _format_for_llm(objects: Dict[int, dict]) -> str:
-#     lines = []
-#     for obj in objects.values():
-#         line = f"type: {obj['type']}, text: {obj['text']}, object_num: {obj['object_num']}"
-#         if obj['before_object']:
-#             befores = ', '.join(f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" for num in obj['before_object'])
-#             line += f"\n    before_object: {befores}"
-#         else:
-#             line += f"\n    before_object: none"
-#         if obj['after_object']:
-#             afters = ', '.join(f"object_num: {objects[num]['object_num']}, type: {objects[num]['type']}, text: {objects[num]['text']}" for num in obj['after_object'])
-#             line += f"\n    after_object: {afters}"
-#         else:
-#             line += f"\n    after_object: none"
-#         lines.append(line)
-#     return '\n\n'.join(lines)
-def _format_for_llm(objects: Dict[int, dict]) -> str:
+def _format_for_llm(objects: dict[int, dict]) -> str:
     lines = []
     for obj in objects.values():
         line = (
@@ -301,105 +262,40 @@ def _format_for_llm(objects: Dict[int, dict]) -> str:
     return "\n\n".join(lines)
 
 
-def _convert_polygon_to_bbox(polygon: List[Tuple[float, float]]) -> List[float]:
-    """4点のpolygonを[x, y, w, h]に変換"""
-    xs = [p[0] for p in polygon]
-    ys = [p[1] for p in polygon]
-    x_min = min(xs)
-    y_min = min(ys)
-    x_max = max(xs)
-    y_max = max(ys)
-    return [x_min, y_min, x_max - x_min, y_max - y_min]
-
-
-def _calculate_containment_ratio(boxA: List[float], boxB: List[float]) -> float:
+def run_azure_ocr(
+    state: OCRDetectionState, config: RunnableConfig
+) -> dict[str, str | list[tuple[str, list[tuple[float, float]]]]]:
     """
-    boxB（小さい方、textのbbox）がどれだけboxA（大きい方、object）に含まれているかを返す。
-    0〜1のスコア。1に近いほど、boxBはboxAにしっかり含まれている。
+    OCRを実行し、テキストとバウンディングボックスを返す。
     """
-    xA = max(boxA[0], boxB[0])
-    yA = max(boxA[1], boxB[1])
-    xB = min(boxA[0] + boxA[2], boxB[0] + boxB[2])
-    yB = min(boxA[1] + boxA[3], boxB[1] + boxB[3])
+    # get configuration
+    configuration = ArrowGuidedVLMConfiguration.from_runnable_config(config)
+    # load DocumentAnalysisClient
+    document_analysis_client = init_document_analysis_client(configuration)
 
-    inter_width = max(0, xB - xA)
-    inter_height = max(0, yB - yA)
-    inter_area = inter_width * inter_height
+    image_path = state.image_path
+    with open(image_path, "rb") as f:
+        poller = document_analysis_client.begin_analyze_document(
+            "prebuilt-read", document=f
+        )
+        result = poller.result()
 
-    boxB_area = boxB[2] * boxB[3]
-
-    if boxB_area == 0:
-        return 0.0
-
-    return inter_area / boxB_area
-
-
-def _create_filename_with_timestamp() -> str:
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%Y%m%d%H%M%S")  # 14桁のタイムスタンプを作成
-    time_str = f"{timestamp}"
-    return time_str
-
-
-def run_azure_ocr(state: OCRDetectionState) -> OCRDetectionState:  # run ocr
-    image_path = state["image_path"]
-    if image_path.lower().endswith(".webp"):
-        with Image.open(image_path) as img:
-            byte_stream = io.BytesIO()
-            img.save(byte_stream, format="PNG")
-            byte_stream.seek(0)
-            print("Converted WebP to PNG in memory.")
-            poller = state["document_analysis_client"].begin_analyze_document(
-                "prebuilt-read", document=byte_stream
-            )
-    else:
-        with open(image_path, "rb") as f:
-            poller = state["document_analysis_client"].begin_analyze_document(
-                "prebuilt-read", document=f
-            )
-    # with open(image_path, "rb") as f:
-    #     poller = state['document_analysis_client'].begin_analyze_document("prebuilt-read", document=f)
-    result = poller.result()
-    print("type(result) : ", type(result))
-    extracted_text = "\n".join([
-        line.content for page in result.pages for line in page.lines
-    ])
-    state["image_path"] = image_path
-    state["extracted_text"] = extracted_text
-    state["result"] = result
-    return state
-
-
-def print_result(state: OCRDetectionState) -> OCRDetectionState:  # output ocr
-    print("\n 抽出されたテキスト:\n")
-    print("state['extracted_text']", state["extracted_text"])
-    result = state["result"]
-
-    extracted_text = []
-    image = Image.open(state["image_path"])
-    # print("image.size, ", image.size)
-    draw = ImageDraw.Draw(image)
-
-    for page in result.pages:  # result.pages.lines.polygon.x, .y
+    text_and_bboxes: list[tuple[str, list[tuple[float, float]]]] = []
+    for page in result.pages:
         for line in page.lines:
             if line.polygon:
                 points = [(point.x, point.y) for point in line.polygon]
-                points.append(points[0])  # 最初の点に戻って閉じる
-                draw.line(points, fill="red", width=2)
+                text_and_bboxes.append((line.content, points))
 
-    # OCR結果を保存
-    timestamp = _create_filename_with_timestamp()
-    image.save(
-        os.path.join(
-            state["out_dir"],
-            "out_img_{}_{}".format(timestamp, args.img_path.rsplit("/", 1)[1]),
-        )
-    )
-
-    return state
+    return {
+        "image_path": image_path,
+        "text_and_bboxes": text_and_bboxes,
+    }
 
 
-def match_textBbox_to_detectionResult(state: OCRDetectionState) -> OCRDetectionState:
+def match_textBbox_to_detectionResult(
+    state: OCRDetectionState, config: RunnableConfig
+) -> dict[str, dict[str, list[dict]]]:
     """
     Match text bounding boxes (from OCR) to detection results (in COCO format).
     Only valid categories (3–7) receive text assignments, but all annotations (including arrows) are kept.
@@ -407,16 +303,16 @@ def match_textBbox_to_detectionResult(state: OCRDetectionState) -> OCRDetectionS
     valid_category_ids = {3, 4, 5, 6, 7}  # 3:terminator, ..., 7:connection
 
     image_id_to_annotations = {
-        img["id"]: [] for img in state["detection_result"]["images"]
+        img["id"]: [] for img in state.detection_result["images"]
     }
 
     # OCRのpolygonを bbox に変換
     ocr_boxes = [
         (text, _convert_polygon_to_bbox(coords))
-        for text, coords in state["text_and_bboxes"]
+        for text, coords in state.text_and_bboxes
     ]
 
-    for annotation in state["detection_result"]["annotations"]:
+    for annotation in state.detection_result["annotations"]:
         image_id = annotation["image_id"]
         category_id = annotation["category_id"]
         obj_bbox = annotation["bbox"]
@@ -426,7 +322,7 @@ def match_textBbox_to_detectionResult(state: OCRDetectionState) -> OCRDetectionS
             matched_texts = []
             for text, text_bbox in ocr_boxes:
                 score = _calculate_containment_ratio(obj_bbox, text_bbox)
-                if score >= state["detection_ocr_match_threshold"]:
+                if score >= state.detection_ocr_match_threshold:
                     matched_texts.append(text)
                     print(
                         f"matched!!! obj_bbox: {obj_bbox}, text_bbox: {text_bbox}, score: {score:.3f}"
@@ -439,57 +335,23 @@ def match_textBbox_to_detectionResult(state: OCRDetectionState) -> OCRDetectionS
         image_id_to_annotations[image_id].append(annotation)
 
     # 全データを構築
-    merged_data = {
-        "images": state["detection_result"]["images"],
+    merged_data: dict[str, list[dict]] = {
+        "images": state.detection_result["images"],
         "annotations": sum(image_id_to_annotations.values(), []),
     }
-    state["detection_ocr_result"] = merged_data
-    print("merged_data: ", merged_data)
-    return state
-
-
-def get_result(state: OCRDetectionState) -> OCRDetectionState:
-    result = state["result"]
-    text_and_bboxes = []
-
-    for page in result.pages:
-        for line in page.lines:
-            if line.polygon:
-                points = [(point.x, point.y) for point in line.polygon]
-                text_and_bboxes.append((line.content, points))
-
-    # stateに追加して戻す（必要であれば）
-    state["text_and_bboxes"] = text_and_bboxes
-    print("text_and_bboxes, ", text_and_bboxes)
-
-    return state
+    return {
+        "detection_ocr_result": merged_data,
+    }
 
 
 def main(args):
-    load_dotenv()
-
-    AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT = os.getenv(
-        "AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT"
-    )
-    AZURE_DOCUMENT_INTELLIGENCE_KEY = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_KEY")
-    print("env finish")
-    documentAnalysisClient1 = DocumentAnalysisClient(
-        endpoint=AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT,
-        credential=AzureKeyCredential(AZURE_DOCUMENT_INTELLIGENCE_KEY),
-    )
-
     builder = StateGraph(OCRDetectionState)
     builder.add_node("RunOCR", run_azure_ocr)
-    if args.process_name == "debug_out_image":  # debug. printout bbox of text to image
-        builder.add_node("GetResult", print_result)
-    else:
-        builder.add_node("GetResult", get_result)
     builder.add_node("MergeOCRDetection", match_textBbox_to_detectionResult)
     builder.add_node("BuildDirectedGraph", build_flowchart_graph)
 
     builder.set_entry_point("RunOCR")
-    builder.add_edge("RunOCR", "GetResult")
-    builder.add_edge("GetResult", "MergeOCRDetection")
+    builder.add_edge("RunOCR", "MergeOCRDetection")
     builder.add_edge("MergeOCRDetection", "BuildDirectedGraph")
     builder.add_edge("BuildDirectedGraph", END)
 
@@ -501,9 +363,6 @@ def main(args):
         data_dict = json.load(f)
     input_state = {
         "image_path": args.img_path,
-        "extracted_text": None,
-        "result": None,
-        "document_analysis_client": documentAnalysisClient1,
         "out_dir": args.output_dir,
         "text_and_bboxes": None,
         "detection_result": data_dict,
@@ -526,6 +385,7 @@ def main(args):
         "arrow_end": 9,
     }
     final_state = graph.invoke(input_state)
+    print("final_state: ", final_state)
 
 
 def parser():

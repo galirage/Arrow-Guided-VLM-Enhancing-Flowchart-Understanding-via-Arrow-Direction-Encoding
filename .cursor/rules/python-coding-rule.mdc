@@ -1,0 +1,189 @@
+---
+description: python coding rule
+globs: 
+alwaysApply: false
+---
+以下は **Python 3.11** 時点で「標準ライブラリだけで書ける型定義と表記法」を、実際にコードを書く際のベストプラクティスも交えて **1 枚の社内 Wiki へそのまま貼れる体裁** でまとめたドキュメントです。  
+（※ 型チェッカーには *mypy / pyright / pylance* などを想定していますが、ここで触れる API はすべて **標準ライブラリの `typing`, `collections.abc`, `dataclasses`** で完結します。）
+
+---
+
+## 目次
+1. 基本形（ビルトイン型 & コレクション）
+2. 合成形（`Union` / `Optional` ほか）
+3. ジェネリクス基礎（`TypeVar`, `Generic`）
+4. Python 3.11 新・強化ポイント
+5. 高度な型（`Literal`, `Final`, `Annotated`, `NewType` …）
+6. 構造化データ: `TypedDict`, `NamedTuple`, `dataclass`
+7. 関数まわりの特殊型（`ParamSpec`, `Self`, `Callable` ほか）
+8. 便利ユーティリティ & 運用ヒント
+
+---
+
+## 1. 基本形（ビルトイン型 & コレクション）
+
+| 目的 | 例 | 補足 |
+| --- | --- | --- |
+| 単純な値 | `int`, `str`, `bool`, `float`, `bytes`, `None` | `None` は値としても型としても使える |
+| リスト | `list[int]` | 3.9 以降は `list[int]` の角カッコ表記が正式 |
+| タプル | `tuple[int, str]` / `tuple[int, ...]` | 後者は長さ不定 |
+| Dict・集合 | `dict[str, int]`, `set[str]` | `typing.Dict` など旧表記は非推奨 |
+| イテラブル系抽象型 | `Iterable[int]`, `Sequence[str]`, `Mapping[str, int]` | `collections.abc` 由来（`from collections.abc import Iterable` も可） |
+
+```python
+from collections.abc import Sequence
+
+def mean(xs: Sequence[float]) -> float: ...
+```
+
+---
+
+## 2. 合成形
+
+| 構文 | 意味 | 例 |
+| --- | --- | --- |
+| `X | Y` | **合併型** (`Union[X, Y]`) | `int | str` |
+| `Optional[X]` | `X | None` のシンタックスシュガー | `Optional[str]` ⇔ `str | None` |
+| `@overload` | 関数シグネチャを複数宣言 | 実装は最後に 1 つ |
+
+```python
+from typing import overload
+
+@overload
+def pick(data: list[int], *, first: bool = ...) -> int: ...
+@overload
+def pick(data: list[str], *, first: bool = ...) -> str: ...
+def pick(data, *, first=True):
+    return data[0] if first else data[-1]
+```
+
+---
+
+## 3. ジェネリクス基礎
+
+```python
+from typing import TypeVar, Generic
+
+T = TypeVar("T")
+
+class Stack(Generic[T]):
+    def __init__(self) -> None:
+        self._items: list[T] = []
+    def push(self, item: T) -> None: ...
+    def pop(self) -> T: ...
+```
+
+* **`TypeVar("T", bound=SomeBase)`** で上限縛り  
+* **共変 / 反変**: `covariant=True`, `contravariant=True`
+
+---
+
+## 4. Python 3.11 で追加・強化された注目ポイント
+
+| PEP | 概要 | 使いどころ | サンプル |
+| --- | --- | --- | --- |
+| **PEP 673 `typing.Self`** | クラス自身を返すメソッドを簡潔に | ファクトリ, ビルダー | `def set_x(self, x: int) -> Self:` |
+| **PEP 681 `typing.dataclass_transform`** | ライブラリ作者向けメタデータ | Pydantic v2, attrs | カスタム dataclass ライク API を型安全に |
+| **PEP 646 可変長ジェネリクス** | `TypeVarTuple`, `Unpack` | NDArray の形状表現 | `Shape = TypeVarTuple("Shape")` |
+| **PEP 655 `Required` / `NotRequired`** | `TypedDict` の必須・任意フィールド | 部分更新 API | `class User(TypedDict): name: str; age: NotRequired[int]` |
+
+*ランタイム側の新機能*  
+- **例外グループ & `except*`** (PEP 654) は並列処理で必須  
+- **`str.removeprefix/strip`** 速度改善など ― 型とは直接無関係だが知っておくと吉
+
+---
+
+## 5. 高度な型
+
+| 型 | 説明 | 例 |
+| --- | --- | --- |
+| `Literal` | リテラル値に限定 | `def set_mode(m: Literal["RGB", "BGR"]): ...` |
+| `Final` | 再代入不可 / 継承不可 | `PI: Final = 3.1415` |
+| `ClassVar` | インスタンスではなくクラス属性 | `ClassVar[int]` |
+| `NewType` | ラップして別概念を示す | `UserId = NewType("UserId", int)` |
+| `Annotated` | 追加メタ情報 | `Annotated[int, "px"]` – FastAPI で活躍 |
+| `TypeAlias` | 型エイリアスを明示 | `Vector: TypeAlias = list[float]` |
+
+---
+
+## 6. 構造化データ
+
+### 6.1 `TypedDict`（辞書を“構造体”化）
+
+```python
+from typing import TypedDict, Required, NotRequired
+
+class User(TypedDict):
+    id: int
+    name: str
+    age: NotRequired[int]
+```
+
+### 6.2 `NamedTuple`
+
+```python
+from typing import NamedTuple
+
+class Point(NamedTuple):
+    x: float
+    y: float
+```
+
+### 6.3 `@dataclass`
+
+```python
+from dataclasses import dataclass
+
+@dataclass(slots=True, kw_only=True)
+class Config:
+    host: str
+    port: int = 5432
+```
+
+---
+
+## 7. 関数まわりの特殊型
+
+| 型 | 用途 | 例 |
+| --- | --- | --- |
+| `Callable[[A, B], R]` | 関数オブジェクト | `Callable[[str], int]` |
+| `ParamSpec`, `Concatenate` | デコレータで元関数のシグネチャ保持 | ```python\nP = ParamSpec("P")\nR = TypeVar("R")\n\ndef log(func: Callable[P, R]) -> Callable[P, R]: ...\n``` |
+| `Self` | メソッドチェーンを型安全に | `def clone(self) -> Self:` |
+| 位置専用 / キーワード専用 | `/`, `*` を関数定義で使用 | `def pow(x: int, /, exp: int, *, mod: int | None = None): ...` |
+
+---
+
+## 8. 便利ユーティリティ & 運用ヒント
+
+* **`get_type_hints(obj, include_extras=True)`** で `Annotated` 付き型も取得可。  
+* **`typing.reveal_type(expr)`** は *mypy/pyright* が実際に推論した型を表示（開発時のみ）。  
+* **型チェック速度** は `--incremental` / `--cache-dir` で高速化可能。  
+* **PEP 563「遅延評価」** は *3.11 現在も* `from __future__ import annotations` 明示が必要（3.13 でデフォルト化予定）。  
+* **演算子オーバーロード時の戻り値型** は `typing.Self` を使うと IDE 支援が向上。  
+* **VS Code / PyCharm** は `pyproject.toml` で `type_checking_mode = "strict"` など設定可。  
+* **ランタイム依存を分離**: 可能なら `if TYPE_CHECKING:` ブロックで重い import を回避。  
+
+---
+
+### 参考リンク（公式ドキュメント）
+- <https://docs.python.org/3/library/typing.html>
+- <https://peps.python.org/pep-0673/> (Self)
+- <https://peps.python.org/pep-0681/> (dataclass_transform)
+- <https://peps.python.org/pep-0646/> (Variadic generics)
+- <https://peps.python.org/pep-0655/> (TypedDict updates)
+
+---
+
+⚡ **使い方のコツ**
+
+1. **まず `mypy --strict` で 1 度全スキャン** → エラーの“質”を見て必要に応じて `--strict-equality` など緩める。  
+2. **コレクションは極力具象型ではなく ABC (`Sequence`, `Mapping`) で受ける**。入力の柔軟性が上がる。  
+3. **`Literal` と `Enum` は併用可**。値集合がコード上閉じているなら `Enum`、外部入力をバリデートするなら `Literal` が手軽。  
+4. **“型が読みにくい”と感じたら `TypeAlias` で局所的に名前を付ける**。長さのあるジェネリックでも保守性が上がる。  
+
+> *「まずは実行時バグを 0→1 個見つけたら型に起こす」* というポリシーで静的型付けの守備範囲を広げていくと、負担を最小化しながら品質を高められます。
+
+---
+
+これで **Python 3.11** の主要な型定義・書き方は一通り押さえられます。  
+チームのコーディング規約や linter 設定と合わせて、このドキュメントを基準にしていただければ幸いです。

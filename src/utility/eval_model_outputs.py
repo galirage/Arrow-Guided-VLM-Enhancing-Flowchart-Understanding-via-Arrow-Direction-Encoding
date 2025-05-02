@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
     # スキーマ読み込み
     data = json.loads(
-        Path("results/q_a_result_predict.json").read_text(encoding="utf-8")
+        Path("data/q_a_result_predict_with_categories.json").read_text(encoding="utf-8")
     )
     qa_set = QAEvaluationSet.model_validate(data)
 
