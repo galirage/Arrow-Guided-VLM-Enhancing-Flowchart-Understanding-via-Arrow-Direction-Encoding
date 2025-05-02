@@ -2,12 +2,11 @@ import csv
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 from src.schema.results import QAEvaluationSet
 
 
-def load_evaluation_results(filepath: str) -> Dict[str, bool]:
+def load_evaluation_results(filepath: str) -> dict[str, bool]:
     """
     評価結果CSVファイルを読み込む関数
 
@@ -27,9 +26,9 @@ def load_evaluation_results(filepath: str) -> Dict[str, bool]:
 
 def analyze_question_types(
     qa_set: QAEvaluationSet,
-    ocr_results: Dict[str, bool],
-    no_ocr_results: Dict[str, bool],
-) -> Dict[int, List[Tuple[str, str, str, str, bool, bool]]]:
+    ocr_results: dict[str, bool],
+    no_ocr_results: dict[str, bool],
+) -> dict[int, list[tuple[str, str, str, str, bool, bool]]]:
     """
     質問タイプごとの回答を分析する関数
 
@@ -59,9 +58,9 @@ def analyze_question_types(
 
 def analyze_differences(
     qa_set: QAEvaluationSet,
-    ocr_results: Dict[str, bool],
-    no_ocr_results: Dict[str, bool],
-) -> Dict[str, List[Tuple[str, str, str, str]]]:
+    ocr_results: dict[str, bool],
+    no_ocr_results: dict[str, bool],
+) -> dict[str, list[tuple[str, str, str, str]]]:
     """
     OCRの有無による回答の差分を分析する関数
 
@@ -117,7 +116,7 @@ def analyze_differences(
 
 
 def print_type_analysis(
-    type_results: Dict[int, List[Tuple[str, str, str, str, bool, bool]]],
+    type_results: dict[int, list[tuple[str, str, str, str, bool, bool]]],
 ) -> None:
     """質問タイプごとの分析結果を出力する関数"""
     print("\n=== 質問タイプごとの分析 ===")
@@ -162,7 +161,7 @@ def print_type_analysis(
 
 
 def print_difference_analysis(
-    differences: Dict[str, List[Tuple[str, str, str, str]]],
+    differences: dict[str, list[tuple[str, str, str, str]]],
 ) -> None:
     """差分の分析結果を出力する関数"""
     print("\n=== OCRの有無による差分の分析 ===")
@@ -187,7 +186,7 @@ def print_difference_analysis(
                 print(f"OCRなし: {no_ocr_pred}")
 
 
-def load_categories_from_csv(filepath: str) -> Dict[Tuple[int, int], str]:
+def load_categories_from_csv(filepath: str) -> dict[tuple[int, int], str]:
     """
     質問と回答事例.csvからカテゴリー情報を読み込む関数
 
@@ -217,7 +216,7 @@ def load_categories_from_csv(filepath: str) -> Dict[Tuple[int, int], str]:
 
 
 def merge_categories_with_qa_data(
-    qa_data: list, categories: Dict[Tuple[int, int], str]
+    qa_data: list, categories: dict[tuple[int, int], str]
 ) -> list:
     """
     QAデータにカテゴリー情報を結合する関数
@@ -253,9 +252,9 @@ def merge_categories_with_qa_data(
 
 def analyze_by_category(
     qa_set: QAEvaluationSet,
-    ocr_results: Dict[str, bool],
-    no_ocr_results: Dict[str, bool],
-) -> Dict[str, List[Tuple[str, str, str, str, bool, bool]]]:
+    ocr_results: dict[str, bool],
+    no_ocr_results: dict[str, bool],
+) -> dict[str, list[tuple[str, str, str, str, bool, bool]]]:
     """
     カテゴリーごとの回答を分析する関数
 
@@ -284,9 +283,9 @@ def analyze_by_category(
 
 def analyze_category_type_combination(
     qa_set: QAEvaluationSet,
-    ocr_results: Dict[str, bool],
-    no_ocr_results: Dict[str, bool],
-) -> Dict[Tuple[str, int], List[Tuple[str, str, str, str, bool, bool]]]:
+    ocr_results: dict[str, bool],
+    no_ocr_results: dict[str, bool],
+) -> dict[tuple[str, int], list[tuple[str, str, str, str, bool, bool]]]:
     """
     カテゴリーと質問タイプの組み合わせごとの回答を分析する関数
 
@@ -315,7 +314,7 @@ def analyze_category_type_combination(
 
 
 def print_category_analysis(
-    category_results: Dict[str, List[Tuple[str, str, str, str, bool, bool]]],
+    category_results: dict[str, list[tuple[str, str, str, str, bool, bool]]],
 ) -> None:
     """カテゴリーごとの分析結果を出力する関数"""
     print("\n=== カテゴリーごとの分析 ===")
@@ -352,8 +351,8 @@ def print_category_analysis(
 
 
 def print_category_type_analysis(
-    combination_results: Dict[
-        Tuple[str, int], List[Tuple[str, str, str, str, bool, bool]]
+    combination_results: dict[
+        tuple[str, int], list[tuple[str, str, str, str, bool, bool]]
     ],
 ) -> None:
     """カテゴリーと質問タイプの組み合わせごとの分析結果を出力する関数"""
@@ -393,8 +392,8 @@ def print_category_type_analysis(
 
 def print_overall_analysis(
     qa_set: QAEvaluationSet,
-    ocr_results: Dict[str, bool],
-    no_ocr_results: Dict[str, bool],
+    ocr_results: dict[str, bool],
+    no_ocr_results: dict[str, bool],
 ) -> None:
     """全体の分析結果を出力する関数"""
     print("\n=== 全体の分析結果 ===")

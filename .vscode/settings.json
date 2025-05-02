@@ -9,6 +9,7 @@
     "ruff.linting.enabled": true
   },
   "cSpell.words": [
+    "formrecognizer",
     "langgraph"
   ]
 }
