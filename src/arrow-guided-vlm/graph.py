@@ -102,14 +102,11 @@ def all_image(args):
     print("len(img_files) ", len(img_files))
     all_results = []
     for num, file1 in enumerate(img_files):
-        # try:
         args.img_path = file1
         print("args.img_path: ", args.img_path)
         results1 = main(args)
         for result1 in results1:
             all_results.append(result1)
-        # except:
-        #     print("img_path:{} is not done!!")
 
     with open(
         os.path.join(args.output_dir, "q_a_result.json"), "w", encoding="utf-8"

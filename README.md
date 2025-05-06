@@ -60,7 +60,19 @@ pip install ruff pytest
 
 VSCodeを使用している場合、`charliermarsh.ruff`拡張機能をインストールすると、コード保存時の自動フォーマットやリアルタイムのlintチェックが有効になります。
 
-## OCR, detection -> LLM の実行手順
+## OCR, detection -> LLM のpipeline実行手順
+
+1. 適当な場所に画像を入れた `images/` などのdirectoryを配置する。
+2. 同じ階層に `json/` という名のdirectoryを配置し、出力結果（coco data形式）を入れる。
+3. `.env` に以下のような必要事項を記入し、 `gg-rq-rag-flowchat-detection/` 内に配置する。
+```
+AZURE_OPENAI_ENDPOINT="https://..."
+AZURE_OPENAI_API_KEY="..."
+DEPLOY_NAME_GPT_4O="gpt-4o"
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT="https://..."
+AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
+```
+4. 以下で `src/arrow-guided-vlm/graph` をモジュールとして実行する。
 ```bash
 cd gg-rq-rag-flowchat-detection/
 python -m src.arrow-guided-vlm.graph --process_name image_all --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY
