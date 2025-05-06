@@ -1,10 +1,12 @@
 import argparse
+import io
 
 # from state import DetectionState
 import json
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, StateGraph
+from PIL import Image
 
 from .configuration import ArrowGuidedVLMConfiguration
 from .state import OCRDetectionState
@@ -274,11 +276,21 @@ def run_azure_ocr(
     document_analysis_client = init_document_analysis_client(configuration)
 
     image_path = state.image_path
-    with open(image_path, "rb") as f:
+    if image_path.lower().endswith(".webp"):
+        with Image.open(image_path) as img:
+            byte_stream = io.BytesIO()
+            img.save(byte_stream, format="PNG")
+            byte_stream.seek(0)
+            print("Converted WebP to PNG in memory.")
         poller = document_analysis_client.begin_analyze_document(
-            "prebuilt-read", document=f
+            "prebuilt-read", document=byte_stream
         )
-        result = poller.result()
+    else:
+        with open(image_path, "rb") as f:
+            poller = document_analysis_client.begin_analyze_document(
+                "prebuilt-read", document=f
+            )
+    result = poller.result()
 
     text_and_bboxes: list[tuple[str, list[tuple[float, float]]]] = []
     for page in result.pages:

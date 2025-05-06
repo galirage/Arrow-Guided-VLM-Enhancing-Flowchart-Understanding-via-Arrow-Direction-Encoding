@@ -62,8 +62,8 @@ VSCodeを使用している場合、`charliermarsh.ruff`拡張機能をインス
 
 ## OCR, detection -> LLM の実行手順
 ```bash
-cd src
-python graph.py --process_name main --img_path PATH/TO/FLOW-CHART-IMAGE-FILE
+cd gg-rq-rag-flowchat-detection/
+python -m src.arrow-guided-vlm.graph --process_name image_all --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY
 # ex)
-python graph.py --process_name main --img_path ../images/flowchart-example179.png
+python -m src.arrow-guided-vlm.graph --process_name image_all --img_dir images/
 ```
