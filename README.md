@@ -45,12 +45,6 @@ Python scripts in the `src/` directory use a standard Python virtual environment
     rye sync
     ```
 
-4. **Run scripts using Rye:**
-
-    ```bash
-    rye run python your_script.py
-    ```
-
 ### Deep Learning Notebooks (`notebooks/`)
 
 Follow the instructions in each Jupyter Notebook in the `notebooks/` directory to set up the required environment and dependencies for specific experiments. If a `notebooks/requirements.txt` file is provided, you can use `pip` within any environment (e.g., conda, venv) to install the dependencies.
@@ -71,19 +65,21 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
 
 2. At the same directory level, create a directory named `json/` and store the output results in COCO data format.
 
-3. Create a `.env` file with the following environment variables, and place it inside the `Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding` directory:
-```env
-AZURE_OPENAI_ENDPOINT="https://..."
-AZURE_OPENAI_API_KEY="..."
-DEPLOY_NAME_GPT_4O="gpt-4o"
-AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT="https://..."
-AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
-```
+3. Create a `.env` file by copying and editing the provided `.env_exsample` file.  
+   Place the resulting `.env` file in the `Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding` directory.
+
+   Example:
+   ```bash
+   cp .env_sample .env
+   ```
+   # Then edit .env to set your actual credentials
 
 4. Execute `src/arrow-guided-vlm/graph` as a module using the command below:
-```bash
-cd gg-rq-rag-flowchat-detection/
-python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY
-# Example:
-python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/
-```
+   ```bash
+   cd Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding/
+   rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY --output_dir PATH/TO/OUTPUT/DIR
+   ```
+   # Example:
+   ```
+   rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/ --output_dir output
+   ```

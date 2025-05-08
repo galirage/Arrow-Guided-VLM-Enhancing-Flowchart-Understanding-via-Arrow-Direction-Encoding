@@ -107,7 +107,7 @@ def all_image(args):
         results1 = main(args)
         for result1 in results1:
             all_results.append(result1)
-
+    os.makedirs(args.output_dir, exist_ok=True)
     with open(
         os.path.join(args.output_dir, "q_a_result.json"), "w", encoding="utf-8"
     ) as f:
