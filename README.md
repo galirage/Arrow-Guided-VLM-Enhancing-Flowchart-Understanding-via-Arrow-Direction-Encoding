@@ -51,10 +51,11 @@ Follow the instructions in each Jupyter Notebook in the `notebooks/` directory t
 
 ## Development Tools
 
-For the code in the `src/` directory, it is recommended to use `ruff` as a linter/formatter and `pytest` for testing. Install them within the `.venv` environment you created:
+For the code in the `src/` directory, it is recommended to use `ruff` as a linter/formatter and `pytest` for testing.  
 
 ```bash
-pip install ruff pytest
+rye run pytest
+rye run ruff check .
 ```
 
 If you are using VSCode, installing the `charliermarsh.ruf` extension will enable automatic formatting and real-time lint checking when saving code.
@@ -79,7 +80,7 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
    cd Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding/
    rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY --output_dir PATH/TO/OUTPUT/DIR
    ```
-   # Example:
+   Example:
    ```
    rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/ --output_dir output
    ```

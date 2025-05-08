@@ -38,7 +38,7 @@ def parser():
         "--img_dir",
         "-igd",
         type=str,
-        default="../../images/",
+        default="images/",
         help="path to directory incuding images",
     )
     return parser.parse_args()
