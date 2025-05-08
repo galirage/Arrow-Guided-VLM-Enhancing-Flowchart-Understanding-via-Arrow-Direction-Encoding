@@ -66,12 +66,12 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
 
 2. At the same directory level, create a directory named `json/` and store the output results in COCO data format.
 
-3. Create a `.env` file by copying and editing the provided `.env_exsample` file.  
+3. Create a `.env` file by copying and editing the provided `.env.exsample` file.  
    Place the resulting `.env` file in the `Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding` directory.
 
    Example:
    ```bash
-   cp .env_sample .env
+   cp .env.exsample .env
    ```
    # Then edit .env to set your actual credentials
 
