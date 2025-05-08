@@ -26,32 +26,30 @@ Python scripts in the `src/` directory use a standard Python virtual environment
 -   Python 3.11 or later
 
 **Setup Steps:**
+1. **Install Rye (if not already installed):**
 
-1.  Move to the root directory of the project:
+    If you have not installed Rye yet, please follow the instructions on the official website based on your operating system:
+
+    👉 https://rye.astral.sh/guide/installation/
+
+2. **Clone this repository and move to the project root:**
+
     ```bash
-    cd gg-rq-rag-flowchat-detection
+    git clone https://github.com/galirage/Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding.git
+    cd Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding
     ```
 
-2.  Create a virtual environment:
+3. **Sync dependencies (installs Python and packages):**
+
     ```bash
-    python -m venv .venv
+    rye sync
     ```
 
-3.  Activate the virtual environment:
-    -   On macOS/Linux:
-        ```bash
-        source .venv/bin/activate
-        ```
-    -   On Windows:
-        ```bash
-        .venv\Scripts\activate
-        ```
+4. **Run scripts using Rye:**
 
-4.  Install dependencies for the `src` directory (if `src/requirements.txt` exists):
     ```bash
-    pip install -r src/requirements.txt
+    rye run python your_script.py
     ```
-    *(Note: Create this `requirements.txt` file as needed.)*
 
 ### Deep Learning Notebooks (`notebooks/`)
 
@@ -73,7 +71,7 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
 
 2. At the same directory level, create a directory named `json/` and store the output results in COCO data format.
 
-3. Create a `.env` file with the following environment variables, and place it inside the `gg-rq-rag-flowchat-detection/` directory:
+3. Create a `.env` file with the following environment variables, and place it inside the `Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding` directory:
 ```env
 AZURE_OPENAI_ENDPOINT="https://..."
 AZURE_OPENAI_API_KEY="..."
@@ -85,7 +83,7 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 4. Execute `src/arrow-guided-vlm/graph` as a module using the command below:
 ```bash
 cd gg-rq-rag-flowchat-detection/
-python -m src.arrow-guided-vlm.graph --process_name image_all --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY
+python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY
 # Example:
-python -m src.arrow-guided-vlm.graph --process_name image_all --img_dir images/
+python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/
 ```
