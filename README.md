@@ -1,81 +1,91 @@
-# フローチャート検出プロジェクト
+<div align="center">
+  <img src="./assets/galirage_logo.png" width="100%" alt="galirage_logo" />
+</div>
+<hr>
 
-## 概要
+# Arrow-Guided VLM: Enhancing Flowchart Understanding via Arrow Direction Encoding
 
-本リポジトリは、[論文タイトル（必要であれば追加）]の研究で使用されたフローチャート図検出のためのプログラムコードを管理するものです。
+## 🔍 Project Overview
 
-プロジェクトは主に以下の2つの要素で構成されています。
+<img src="./assets/pipeline_figure_vlm_train_data.png" width=100%>
 
--   `notebooks/`: フローチャート図検出のための深層学習モデルに関する実験を行ったJupyter Notebookが含まれます。これらのNotebookは、個々に必要な環境構築手順や依存関係リスト（例: ディレクトリ内の`requirements.txt`）を持つ場合があります。
--   `src/`: 大規模言語モデル（LLM）関連の処理（パーサー、評価ツールなど）を行うPythonスクリプトが含まれます。
+This repository contains the source code used for flowchart diagram detection in the research of [Arrow-Guided VLM: Enhancing Flowchart Understanding via Arrow Direction Encoding].
 
-## 環境構築
+The project mainly consists of the following two components:
 
-### LLM関連スクリプト (`src/`)
+-   `notebooks/`: Contains Jupyter Notebooks used for experiments on deep learning models for flowchart diagram detection. Each notebook may have its own setup instructions and dependency lists (e.g., `requirements.txt` within the directory).
+-   `src/`: Contains Python scripts for tasks related to Large Language Models (LLMs), such as parsers and evaluation tools.
 
-`src/`ディレクトリ内のPythonスクリプトは、標準的なPython仮想環境 (`venv`) を使用します。
+## Environment Setup
 
-**前提条件:**
--   Python 3.11 以降
+### LLM-related Scripts (`src/`)
 
-**セットアップ手順:**
+Python scripts in the `src/` directory use a standard Python virtual environment (`venv`).
 
-1.  プロジェクトのルートディレクトリに移動します。
+**Prerequisites:**
+-   Python 3.11 or later
+
+**Setup Steps:**
+
+1.  Move to the root directory of the project:
     ```bash
     cd gg-rq-rag-flowchat-detection
     ```
 
-2.  仮想環境を作成します。
+2.  Create a virtual environment:
     ```bash
     python -m venv .venv
     ```
 
-3.  仮想環境を有効化します。
-    -   macOS/Linuxの場合:
+3.  Activate the virtual environment:
+    -   On macOS/Linux:
         ```bash
         source .venv/bin/activate
         ```
-    -   Windowsの場合:
+    -   On Windows:
         ```bash
         .venv\Scripts\activate
         ```
 
-4.  `src`ディレクトリ用の依存関係をインストールします。（`src/requirements.txt`が存在する場合）
+4.  Install dependencies for the `src` directory (if `src/requirements.txt` exists):
     ```bash
     pip install -r src/requirements.txt
     ```
-    *(注意: この`requirements.txt`ファイルは必要に応じて作成してください)*
+    *(Note: Create this `requirements.txt` file as needed.)*
 
-### 深層学習関連Notebook (`notebooks/`)
+### Deep Learning Notebooks (`notebooks/`)
 
-`notebooks/`ディレクトリ内の各Jupyter Notebookに記載されている指示に従って、特定の実験に必要な環境や依存関係をセットアップしてください。もし`notebooks/requirements.txt`ファイルが提供されている場合は、任意の環境（例: conda, venv）で`pip`を使用して依存関係をインストールできます。
+Follow the instructions in each Jupyter Notebook in the `notebooks/` directory to set up the required environment and dependencies for specific experiments. If a `notebooks/requirements.txt` file is provided, you can use `pip` within any environment (e.g., conda, venv) to install the dependencies.
 
-## 開発ツール
+## Development Tools
 
-`src/`ディレクトリのコードについては、リンター/フォーマッターとして`ruff`、テストツールとして`pytest`の使用を推奨します。これらは作成した`.venv`環境内にインストールしてください。
+For the code in the `src/` directory, it is recommended to use `ruff` as a linter/formatter and `pytest` for testing. Install them within the `.venv` environment you created:
 
 ```bash
 pip install ruff pytest
 ```
 
-VSCodeを使用している場合、`charliermarsh.ruff`拡張機能をインストールすると、コード保存時の自動フォーマットやリアルタイムのlintチェックが有効になります。
+If you are using VSCode, installing the `charliermarsh.ruf` extension will enable automatic formatting and real-time lint checking when saving code.
 
-## OCR, detection -> LLM のpipeline実行手順
+## OCR, Detection -> LLM Execution Procedure
 
-1. 適当な場所に画像を入れた `images/` などのdirectoryを配置する。
-2. 同じ階層に `json/` という名のdirectoryを配置し、出力結果（coco data形式）を入れる。
-3. `.env` に以下のような必要事項を記入し、 `gg-rq-rag-flowchat-detection/` 内に配置する。
-```
+1. Place a directory named `images/` (or any appropriate name) in a suitable location and add the input images there.
+
+2. At the same directory level, create a directory named `json/` and store the output results in COCO data format.
+
+3. Create a `.env` file with the following environment variables, and place it inside the `gg-rq-rag-flowchat-detection/` directory:
+```env
 AZURE_OPENAI_ENDPOINT="https://..."
 AZURE_OPENAI_API_KEY="..."
 DEPLOY_NAME_GPT_4O="gpt-4o"
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT="https://..."
 AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 ```
-4. 以下で `src/arrow-guided-vlm/graph` をモジュールとして実行する。
+
+4. Execute `src/arrow-guided-vlm/graph` as a module using the command below:
 ```bash
 cd gg-rq-rag-flowchat-detection/
 python -m src.arrow-guided-vlm.graph --process_name image_all --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY
-# ex)
+# Example:
 python -m src.arrow-guided-vlm.graph --process_name image_all --img_dir images/
 ```
