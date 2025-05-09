@@ -9,7 +9,7 @@
 
 <img src="./assets/pipeline_figure_vlm_train_data.png" width=100%>
 
-This repository contains the source code used for flowchart diagram detection in the research of [Paper Title (add if needed)].
+This repository contains the source code used for flowchart diagram detection in the research of [Arrow-Guided VLM: Enhancing Flowchart Understanding via Arrow Direction Encoding].
 
 The project mainly consists of the following two components:
 
@@ -26,32 +26,24 @@ Python scripts in the `src/` directory use a standard Python virtual environment
 -   Python 3.11 or later
 
 **Setup Steps:**
+1. **Install Rye (if not already installed):**
 
-1.  Move to the root directory of the project:
+    If you have not installed Rye yet, please follow the instructions on the official website based on your operating system:
+
+    👉 https://rye.astral.sh/guide/installation/
+
+2. **Clone this repository and move to the project root:**
+
     ```bash
-    cd gg-rq-rag-flowchat-detection
+    git clone https://github.com/galirage/Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding.git
+    cd Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding
     ```
 
-2.  Create a virtual environment:
-    ```bash
-    python -m venv .venv
-    ```
+3. **Sync dependencies (installs Python and packages):**
 
-3.  Activate the virtual environment:
-    -   On macOS/Linux:
-        ```bash
-        source .venv/bin/activate
-        ```
-    -   On Windows:
-        ```bash
-        .venv\Scripts\activate
-        ```
-
-4.  Install dependencies for the `src` directory (if `src/requirements.txt` exists):
     ```bash
-    pip install -r src/requirements.txt
+    rye sync
     ```
-    *(Note: Create this `requirements.txt` file as needed.)*
 
 ### Deep Learning Notebooks (`notebooks/`)
 
@@ -59,16 +51,36 @@ Follow the instructions in each Jupyter Notebook in the `notebooks/` directory t
 
 ## Development Tools
 
-For the code in the `src/` directory, it is recommended to use `ruff` as a linter/formatter and `pytest` for testing. Install them within the `.venv` environment you created:
+For the code in the `src/` directory, it is recommended to use `ruff` as a linter/formatter and `pytest` for testing.  
 
 ```bash
-pip install ruff pytest
+rye run pytest
+rye run ruff check .
 ```
+
+If you are using VSCode, installing the `charliermarsh.ruf` extension will enable automatic formatting and real-time lint checking when saving code.
 
 ## OCR, Detection -> LLM Execution Procedure
-```bash
-cd src
-python arrow-guided-vlm/graph.py --process_name all_image --img_dir PATH/TO/IMAGES/DIR
-# Example:
-python arrow-guided-vlm/graph.py --process_name all_image --img_dir ../images/
-```
+
+1. Place a directory named `images/` (or any appropriate name) in a suitable location and add the input images there.
+
+2. At the same directory level, create a directory named `json/` and store the output results in COCO data format.
+
+3. Create a `.env` file by copying and editing the provided `.env.exsample` file.  
+   Place the resulting `.env` file in the `Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding` directory.
+
+   Example:
+   ```bash
+   cp .env.exsample .env
+   ```
+   # Then edit .env to set your actual credentials
+
+4. Execute `src/arrow-guided-vlm/graph` as a module using the command below:
+   ```bash
+   cd Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding/
+   rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY --output_dir PATH/TO/OUTPUT/DIR
+   ```
+   Example:
+   ```
+   rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/ --output_dir output
+   ```

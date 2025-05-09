@@ -1,19 +1,19 @@
 import argparse
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
 
 class OCRDetectionState(BaseModel):
-    detection_result: dict[str, list[dict]]
-    detection_ocr_result: Optional[dict] = None
+    detection_result: Dict[str, List[Dict]]
+    detection_ocr_result: Optional[Dict] = None
     detection_ocr_match_threshold: float = 0.5
 
     image_path: str
     image_num: str
     out_dir: str
-    text_and_bboxes: list[tuple[str, list[tuple[float, float]]]]
-    object_categories: dict
+    text_and_bboxes: List[Tuple[str, List[Tuple[float, float]]]]
+    object_categories: Dict[int, str]
     arrow_category: int
     arrow_start: int
     arrow_end: int

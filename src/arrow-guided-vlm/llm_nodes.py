@@ -49,7 +49,7 @@ def _get_question(image_num: int) -> list[dict[str, str]]:
     """
     Get the question and answer for the given image number.
     """
-    df = pd.read_csv("../csv/source_of_FC_questions.csv")
+    df = pd.read_csv("csv/source_of_FC_questions.csv")
     df.info()
     print("df.head(10)")
     print(df.head(10))
@@ -71,11 +71,13 @@ def _get_question(image_num: int) -> list[dict[str, str]]:
             answer = "The next step after '{}' is '{}'.".format(
                 row["q_ref_step1"], row["answer_ref_step"]
             )
-            question_answers.append({
-                "question_type": row["question_type"],
-                "question": question,
-                "answer_collect": answer,
-            })
+            question_answers.append(
+                {
+                    "question_type": row["question_type"],
+                    "question": question,
+                    "answer_collect": answer,
+                }
+            )
         elif row["question_type"] == 2:
             question = "In this flowchart diagram, if '{}' is '{}', what is the next step?".format(
                 row["q_ref_step1"], row["q_ref_yes_no"]
@@ -83,11 +85,13 @@ def _get_question(image_num: int) -> list[dict[str, str]]:
             answer = "If '{}' is '{}', the next step is '{}'.".format(
                 row["q_ref_step1"], row["q_ref_yes_no"], row["answer_ref_step"]
             )
-            question_answers.append({
-                "question_type": row["question_type"],
-                "question": question,
-                "answer_collect": answer,
-            })
+            question_answers.append(
+                {
+                    "question_type": row["question_type"],
+                    "question": question,
+                    "answer_collect": answer,
+                }
+            )
         else:  # 3
             question = "In the flowchart diagram, which of the steps before an object '{}' except '{}'?".format(
                 row["q_ref_step1"], row["q_ref_step2"]
@@ -95,11 +99,13 @@ def _get_question(image_num: int) -> list[dict[str, str]]:
             answer = "The step before '{}' except '{}' is '{}'.".format(
                 row["q_ref_step1"], row["q_ref_step2"], row["answer_ref_step"]
             )
-            question_answers.append({
-                "question_type": row["question_type"],
-                "question": question,
-                "answer_collect": answer,
-            })
+            question_answers.append(
+                {
+                    "question_type": row["question_type"],
+                    "question": question,
+                    "answer_collect": answer,
+                }
+            )
     return question_answers
 
 
@@ -161,19 +167,23 @@ def ask_to_llm(state: OCRDetectionState, config: RunnableConfig) -> dict[str, An
         )
         chain = prompt_template | model
 
-        output_dec_ocr = chain.invoke({
-            "question_prompt": q_a1["question"],
-            "flow_chart_text": state.directed_graph_text
-            if state.directed_graph_text
-            else non_ref_text,
-        })
+        output_dec_ocr = chain.invoke(
+            {
+                "question_prompt": q_a1["question"],
+                "flow_chart_text": state.directed_graph_text
+                if state.directed_graph_text
+                else non_ref_text,
+            }
+        )
 
-        results.append({
-            "question": q_a1["question"],
-            "answer_collect": q_a1["answer_collect"],
-            "answer_from_llm_with_no_dec_ocr": output_ori.content,
-            "answer_from_llm_with_dec_ocr": output_dec_ocr.content,
-        })
+        results.append(
+            {
+                "question": q_a1["question"],
+                "answer_collect": q_a1["answer_collect"],
+                "answer_from_llm_with_no_dec_ocr": output_ori.content,
+                "answer_from_llm_with_dec_ocr": output_dec_ocr.content,
+            }
+        )
 
     return {
         "llm_result": results,

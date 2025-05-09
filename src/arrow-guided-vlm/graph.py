@@ -1,5 +1,7 @@
 import argparse
+import glob
 import json
+import os
 
 from langgraph.graph import END, StateGraph
 
@@ -32,6 +34,13 @@ def parser():
         default="output/",
         help="path to output directory",
     )
+    parser.add_argument(
+        "--img_dir",
+        "-igd",
+        type=str,
+        default="images/",
+        help="path to directory incuding images",
+    )
     return parser.parse_args()
 
 
@@ -58,12 +67,10 @@ def main(args):
     input_state = {
         "image_path": args.img_path,
         "out_dir": args.output_dir,
-        "text_and_bboxes": None,
+        "text_and_bboxes": [],
         "detection_result": data_dict,
         "detection_ocr_result": None,
-        "image_num": int(
-            args.img_path.split("flowchart-example", 1)[1].split(".", 1)[0]
-        ),
+        "image_num": args.img_path.split("flowchart-example", 1)[1].split(".", 1)[0],
         "prompt": None,
         "llm_result": None,
         "detection_ocr_match_threshold": 0.5,
@@ -82,14 +89,38 @@ def main(args):
 
     # run langgraph
     final_state = graph.invoke(input_state)
-    print(final_state)
+    for key, value in final_state.__dict__.items():
+        print("------------------------------------------")
+        print(f"{key}: {value}")
+    return final_state["llm_result"]  # list[dict]
+
+
+def all_image(args):
+    # img_files = glob.glob('../images_predict/*')
+    img_files = glob.glob(os.path.join(args.img_dir, "*"))
+    print("img_files")
+    print("len(img_files) ", len(img_files))
+    all_results = []
+    for num, file1 in enumerate(img_files):
+        args.img_path = file1
+        print("args.img_path: ", args.img_path)
+        results1 = main(args)
+        for result1 in results1:
+            all_results.append(result1)
+    os.makedirs(args.output_dir, exist_ok=True)
+    with open(
+        os.path.join(args.output_dir, "q_a_result.json"), "w", encoding="utf-8"
+    ) as f:
+        json.dump(all_results, f)
 
 
 if __name__ == "__main__":
-    """
-    usage)
-    python graph.py --process_name main --img_path ../images/flowchart-example179.png
-
-    """
     args = parser()
-    main(args)
+    if args.process_name == "main":
+        results = main(args)
+        with open(
+            os.path.join(args.output_dir, "q_a_result_017.json"), "w", encoding="utf-8"
+        ) as f:
+            json.dump(results, f)
+    elif args.process_name == "all_image":
+        all_image(args)
