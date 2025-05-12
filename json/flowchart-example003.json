@@ -1,0 +1,526 @@
+{
+  "images": [
+    {
+      "id": 1,
+      "file_name": "flowchart-example003.png",
+      "width": 747,
+      "height": 504
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 1,
+      "category_id": 3,
+      "bbox": [
+        33,
+        31,
+        141,
+        102
+      ],
+      "area": 14382,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 2,
+      "image_id": 1,
+      "category_id": 3,
+      "bbox": [
+        556,
+        166,
+        143,
+        115
+      ],
+      "area": 16445,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 3,
+      "image_id": 1,
+      "category_id": 5,
+      "bbox": [
+        22,
+        185,
+        165,
+        103
+      ],
+      "area": 16995,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 4,
+      "image_id": 1,
+      "category_id": 5,
+      "bbox": [
+        20,
+        338,
+        164,
+        90
+      ],
+      "area": 14760,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 5,
+      "image_id": 1,
+      "category_id": 5,
+      "bbox": [
+        552,
+        334,
+        164,
+        89
+      ],
+      "area": 14596,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 6,
+      "image_id": 1,
+      "category_id": 6,
+      "bbox": [
+        248,
+        319,
+        210,
+        122
+      ],
+      "area": 25620,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 7,
+      "image_id": 1,
+      "category_id": 2,
+      "bbox": [
+        97,
+        130,
+        14,
+        56
+      ],
+      "area": 784,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 8,
+      "image_id": 1,
+      "category_id": 2,
+      "bbox": [
+        97,
+        286,
+        10,
+        54
+      ],
+      "area": 540,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 9,
+      "image_id": 1,
+      "category_id": 2,
+      "bbox": [
+        181,
+        377,
+        67,
+        10
+      ],
+      "area": 670,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 10,
+      "image_id": 1,
+      "category_id": 2,
+      "bbox": [
+        458,
+        373,
+        97,
+        12
+      ],
+      "area": 1164,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 11,
+      "image_id": 1,
+      "category_id": 2,
+      "bbox": [
+        623,
+        280,
+        13,
+        56
+      ],
+      "area": 728,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 12,
+      "image_id": 1,
+      "category_id": 2,
+      "bbox": [
+        97,
+        425,
+        261,
+        39
+      ],
+      "area": 10179,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 13,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        62,
+        55,
+        52,
+        25
+      ],
+      "area": 1300,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 14,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        32,
+        225,
+        93,
+        20
+      ],
+      "area": 1860,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 15,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        30,
+        378,
+        93,
+        22
+      ],
+      "area": 2046,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 16,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        185,
+        469,
+        88,
+        26
+      ],
+      "area": 2288,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 17,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        310,
+        360,
+        73,
+        24
+      ],
+      "area": 1752,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 18,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        588,
+        194,
+        37,
+        21
+      ],
+      "area": 777,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 19,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        457,
+        389,
+        92,
+        23
+      ],
+      "area": 2116,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 20,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        563,
+        374,
+        92,
+        21
+      ],
+      "area": 1932,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 21,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        338,
+        31,
+        287,
+        37
+      ],
+      "area": 10619,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 22,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [
+        617,
+        92,
+        76,
+        45
+      ],
+      "area": 3420,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 23,
+      "image_id": 1,
+      "category_id": 8,
+      "bbox": [
+        93,
+        124,
+        22,
+        15
+      ],
+      "area": 330,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 24,
+      "image_id": 1,
+      "category_id": 8,
+      "bbox": [
+        94,
+        278,
+        18,
+        18
+      ],
+      "area": 324,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 25,
+      "image_id": 1,
+      "category_id": 8,
+      "bbox": [
+        175,
+        375,
+        14,
+        15
+      ],
+      "area": 210,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 26,
+      "image_id": 1,
+      "category_id": 8,
+      "bbox": [
+        346,
+        433,
+        18,
+        15
+      ],
+      "area": 270,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 27,
+      "image_id": 1,
+      "category_id": 8,
+      "bbox": [
+        447,
+        370,
+        22,
+        22
+      ],
+      "area": 484,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 28,
+      "image_id": 1,
+      "category_id": 8,
+      "bbox": [
+        621,
+        326,
+        20,
+        19
+      ],
+      "area": 380,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 29,
+      "image_id": 1,
+      "category_id": 9,
+      "bbox": [
+        93,
+        174,
+        21,
+        21
+      ],
+      "area": 441,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 30,
+      "image_id": 1,
+      "category_id": 9,
+      "bbox": [
+        92,
+        327,
+        21,
+        21
+      ],
+      "area": 441,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 31,
+      "image_id": 1,
+      "category_id": 9,
+      "bbox": [
+        93,
+        417,
+        20,
+        20
+      ],
+      "area": 400,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 32,
+      "image_id": 1,
+      "category_id": 9,
+      "bbox": [
+        236,
+        368,
+        23,
+        25
+      ],
+      "area": 575,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 33,
+      "image_id": 1,
+      "category_id": 9,
+      "bbox": [
+        545,
+        370,
+        19,
+        20
+      ],
+      "area": 380,
+      "segmentation": [],
+      "iscrowd": 0
+    },
+    {
+      "id": 34,
+      "image_id": 1,
+      "category_id": 9,
+      "bbox": [
+        623,
+        276,
+        15,
+        14
+      ],
+      "area": 210,
+      "segmentation": [],
+      "iscrowd": 0
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "text"
+    },
+    {
+      "id": 2,
+      "name": "arrow"
+    },
+    {
+      "id": 3,
+      "name": "terminator"
+    },
+    {
+      "id": 4,
+      "name": "data"
+    },
+    {
+      "id": 5,
+      "name": "process"
+    },
+    {
+      "id": 6,
+      "name": "decision"
+    },
+    {
+      "id": 7,
+      "name": "connection"
+    },
+    {
+      "id": 8,
+      "name": "arrow_start"
+    },
+    {
+      "id": 9,
+      "name": "arrow_end"
+    }
+  ]
+}
