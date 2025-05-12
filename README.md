@@ -91,3 +91,6 @@ The `detection_data/` directory contains data for training and testing the detec
 
 ### pipeline dataset
 The images in the `images/` directory are samples of the data used in the pipeline. The corresponding inference results of the detection model are stored in the `json/` directory.
+
+## 📝  License
+This project is released under the Apache 2.0 license.
