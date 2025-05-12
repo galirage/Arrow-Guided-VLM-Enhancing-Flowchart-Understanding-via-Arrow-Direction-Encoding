@@ -73,7 +73,7 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
    ```bash
    cp .env.exsample .env
    ```
-   # Then edit .env to set your actual credentials
+   Then edit .env to set your actual credentials
 
 4. Execute `src/arrow-guided-vlm/graph` as a module using the command below:
    ```bash
@@ -84,3 +84,10 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
    ```
    rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/ --output_dir output
    ```
+
+## dataset
+### detection dataset
+The `detection_data/` directory contains data for training and testing the detection model in the form of coco data. Among them, `detection_data/train/` is the data used for training and evaluation, and `detection_data/test/` is the test data used to test the training model.
+
+### pipeline dataset
+The images in the `images/` directory are samples of the data used in the pipeline. The corresponding inference results of the detection model are stored in the `json/` directory.
