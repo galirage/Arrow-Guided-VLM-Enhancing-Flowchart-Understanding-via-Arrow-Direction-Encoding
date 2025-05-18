@@ -45,9 +45,9 @@ Python scripts in the `src/` directory use a standard Python virtual environment
     rye sync
     ```
 
-### Deep Learning Notebooks (`notebooks/`)
+### Deep Learning Notebooks (`notebook/`)
 
-Follow the instructions in each Jupyter Notebook in the `notebooks/` directory to set up the required environment and dependencies for specific experiments. If a `notebooks/requirements.txt` file is provided, you can use `pip` within any environment (e.g., conda, venv) to install the dependencies.
+Follow the description in `notebook/G_detect_flowchart_yoloDamo.ipynb` to set up, train, and test.
 
 ## Development Tools
 
@@ -87,7 +87,9 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
 
 ## dataset
 ### detection dataset
-The `detection_data/` directory contains data for training and testing the detection model in the form of coco data. Among them, `detection_data/train/` is the data used for training and evaluation, and `detection_data/test/` is the test data used to test the training model.
+The `notebook/detection_data/` directory contains data for training and testing the detection model in the form of coco data. Among them, `notebook/detection_data/train/` is the data used for training and evaluation, and `notebook/detection_data/test/` is the test data used to test the training model.
+
+For more information, please see `notebook/G_detect_flowchart_yoloDamo.ipynb`
 
 ### pipeline dataset
 The images in the `images/` directory are samples of the data used in the pipeline. The corresponding inference results of the detection model are stored in the `json/` directory.
