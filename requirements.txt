@@ -1,0 +1,14 @@
+# TODO : 実験に必要なパッケージを追加する(DeepLearningのパッケージは除く)
+
+pydantic==2.11.1
+ruff==0.11.2
+langchain-core==0.3.50
+langchain-openai==0.3.12
+langgraph==0.3.24
+python-dotenv==1.1.0
+pytest==8.3.5
+azure-ai-formrecognizer==3.3.0
+pillow==11.2.1
+matplotlib==3.10.1
+langchain-community==0.3.21
+pandas==2.2.3
