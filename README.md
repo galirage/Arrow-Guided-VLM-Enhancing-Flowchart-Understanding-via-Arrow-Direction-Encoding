@@ -65,13 +65,13 @@ Follow the description in `notebook/G_detect_flowchart_yoloDamo.ipynb` to set up
 
 2. At the same directory level, create a directory named `json/` and store the output results in COCO data format.
 
-3. Create a `.env` file by copying and editing the provided `.env.exsample` file.  
+3. Create a `.env` file by copying and editing the provided `.env.example` file.  
    Place the resulting `.env` file in the `Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding` directory.
 
    Example:
 
    ```bash
-   cp .env.exsample .env
+   cp .env.example .env
    ```
 
    Then edit .env to set your actual credentials
