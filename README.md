@@ -3,6 +3,9 @@
 </div>
 <hr>
 
+[![Hugging Face Datasets](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-FC--Detection-blue)](https://huggingface.co/datasets/galirage/FC-Detection)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![arXiv](https://img.shields.io/badge/arXiv-2505.07864v1-blue.svg)](https://arxiv.org/html/2505.07864v1)
 # Arrow-Guided VLM: Enhancing Flowchart Understanding via Arrow Direction Encoding
 
 ## 🔍 Project Overview
@@ -26,11 +29,12 @@ Python scripts in the `src/` directory use a standard Python virtual environment
 -   Python 3.11 or later
 
 **Setup Steps:**
-1. **Install Rye (if not already installed):**
 
-    If you have not installed Rye yet, please follow the instructions on the official website based on your operating system:
+1. **Install uv (if not already installed):**
 
-    👉 https://rye.astral.sh/guide/installation/
+    If you have not installed uv yet, please follow the instructions on the official website based on your operating system:
+
+    👉 [https://github.com/astral-sh/uv](https://github.com/astral-sh/uv)
 
 2. **Clone this repository and move to the project root:**
 
@@ -39,26 +43,21 @@ Python scripts in the `src/` directory use a standard Python virtual environment
     cd Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding
     ```
 
-3. **Sync dependencies (installs Python and packages):**
+3. **Create a virtual environment and install dependencies:**
 
     ```bash
-    rye sync
+    uv sync
+    ```
+
+4. **Activate the virtual environment:**
+
+    ```bash
+    source .venv/bin/activate
     ```
 
 ### Deep Learning Notebooks (`notebook/`)
 
 Follow the description in `notebook/G_detect_flowchart_yoloDamo.ipynb` to set up, train, and test.
-
-## Development Tools
-
-For the code in the `src/` directory, it is recommended to use `ruff` as a linter/formatter and `pytest` for testing.  
-
-```bash
-rye run pytest
-rye run ruff check .
-```
-
-If you are using VSCode, installing the `charliermarsh.ruf` extension will enable automatic formatting and real-time lint checking when saving code.
 
 ## OCR, Detection -> LLM Execution Procedure
 
@@ -70,29 +69,44 @@ If you are using VSCode, installing the `charliermarsh.ruf` extension will enabl
    Place the resulting `.env` file in the `Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding` directory.
 
    Example:
+
    ```bash
    cp .env.exsample .env
    ```
+
    Then edit .env to set your actual credentials
 
 4. Execute `src/arrow-guided-vlm/graph` as a module using the command below:
+
    ```bash
    cd Arrow-Guided-VLM-Enhancing-Flowchart-Understanding-via-Arrow-Direction-Encoding/
-   rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY --output_dir PATH/TO/OUTPUT/DIR
+   uv run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir PATH/TO/FLOW-CHART-IMAGE-DIRECTORY --output_dir PATH/TO/OUTPUT/DIR
    ```
+
    Example:
-   ```
-   rye run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/ --output_dir output
+
+   ```bash
+   uv run python -m src.arrow-guided-vlm.graph --process_name all_image --img_dir images/ --output_dir output
    ```
 
 ## dataset
+
+The dataset used in this research is available on [Hugging Face Datasets](https://huggingface.co/datasets/galirage/FC-Detection).
+
 ### detection dataset
+
 The `notebook/detection_data/` directory contains data for training and testing the detection model in the form of coco data. Among them, `notebook/detection_data/train/` is the data used for training and evaluation, and `notebook/detection_data/test/` is the test data used to test the training model.
 
 For more information, please see `notebook/G_detect_flowchart_yoloDamo.ipynb`
 
 ### pipeline dataset
+
 The images in the `images/` directory are samples of the data used in the pipeline. The corresponding inference results of the detection model are stored in the `json/` directory.
 
 ## 📝  License
+
 This project is released under the Apache 2.0 license.
+
+## Author
+
+[Galirage Inc.](https://galirage.com)
